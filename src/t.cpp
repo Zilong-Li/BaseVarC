@@ -4,6 +4,18 @@
 #include <fstream>
 #include <iostream>
 #include <cassert>
+#include <sstream>
+
+
+namespace patch
+{
+    template < typename T > std::string to_string( const T& n )
+    {
+        std::ostringstream stm ;
+        stm << n ;
+        return stm.str() ;
+    }
+}
 
 struct Line {
     std::string data;
@@ -23,7 +35,9 @@ struct SnpInfo {
 	assert(this->chr == snp.chr);
 	const char *colon = ":";
 	const char *hyphen = "-";
-	return snp.chr + colon + this->pos + hyphen + snp.pos;
+	auto rg_s = patch::to_string(this->pos);
+	auto rg_e = patch::to_string(snp.pos);
+	return snp.chr + colon + rg_s + hyphen + rg_e;
     }
     // define an overload of operator >>
     friend std::istream& operator>>(std::istream& is, SnpInfo& info) {
@@ -31,6 +45,7 @@ struct SnpInfo {
 	return is;
     }
 };
+typedef std::vector<SnpInfo> SnpInfoVector;
 
 int main(int argc, char** argv)
 {
@@ -44,12 +59,12 @@ int main(int argc, char** argv)
 
     std::string input = argv[2];
     std::ifstream ifs(input);
-    std::vector<SnpInfo> snps;
+    SnpInfoVector snps;
     for (SnpInfo info; ifs >> info;) {
 	snps.push_back(info);
     }
-    SnpInfo s = snps.front();
-    SnpInfo e = snps.back();
-    std::string r = s + e;
-    std::cout << snps.size() << "\t" << s.pos << "\t" << e.pos << std::endl;
+    // SnpInfo s = snps.front();
+    // SnpInfo e = snps.back();
+    std::string r = snps.front() + snps.back();
+    std::cout << snps.size() << "\t" << r << std::endl;
 }

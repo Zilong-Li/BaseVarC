@@ -1,41 +1,50 @@
 #include <string>
-#include <vector>
 #include <iterator>
 #include <fstream>
 #include <iostream>
 #include <cassert>
+#include <sstream>
+
 #include "SeqLib/BamReader.h"
 #include "SeqLib/ReadFilter.h"
+#include "BamProcess.h"
 
-struct Line {
-    std::string data;
-    operator std::string const&() const {return data;}
-    friend std::istream& operator>>(std::istream& is, Line& line) {
-	return std::getline(is, line.data);
-    }
-};
+void subpopmatrix (const std::vector<std::string>& bams , const PosInfoVector& pv) {
+    const int32_t M = bams.size();
+    const int32_t N = pv.size();
+    std::vector<char> out;
+    out.reserve(N*M);
+    std::string rg = pv.front() + pv.back();
 
-struct SnpInfo {
-    std::string chr;
-    std::string pos;
-    char ref;
-    char alt;
-    // provide an overload of operator + to return samtools-like region
-    std::string operator+(const SnpInfo& snp) {
-	assert(this->chr == snp.chr);
-	const char *colon = ":";
-	const char *hyphen = "-";
-	return snp.chr + colon + this->pos + hyphen + snp.pos;
+    for (int32_t i = 0; i < M; ++i) {
+	BamProcess reader;
+	if (!reader.Open(bams[i])) {
+	    std::cerr << "ERROR: could not open file " << bams[i] << std::endl;
+	    exit(EXIT_FAILURE);
+	}
+	SeqLib::GenomicRegion gr(rg, reader.Header());
+	reader.SetRegion(gr);
+	reader.findSnpAtPos(pv);
+	for (int32_t j = 0; j < N; ++j) {
+	    out[j * M + i] = reader.snps[j];
+	}
     }
-    // define an overload of operator >>
-    friend std::istream& operator>>(std::istream& is, SnpInfo& info) {
-	is >> std::ws >> info.chr >> info.pos >> info.ref >> info.alt;
-	return is;
-    }
-};
 
-int main(int argc, char* argv[])
+    for (int32_t i = 0 ; i < N ; ++i) {
+	std::cout << pv[i].chr << "\t" << pv[i].pos << "\t" << pv[i].ref << "\t" << pv[i].alt << "\t";
+	for (int32_t j = 0; j < M; ++j) {
+	    std::cout << out[i * M + j] << ",";
+	}
+	std::cout << std::endl;
+    }
+    
+}
+
+int main(int argc, char** argv)
 {
+    if (argc < 2) {
+	exit(EXIT_FAILURE);
+    }
 
     std::string bamlst = argv[1];
     std::ifstream ifs1(bamlst);
@@ -44,23 +53,38 @@ int main(int argc, char* argv[])
 
     std::string posfile = argv[2];
     std::ifstream ifs2(posfile);
-    std::vector<SnpInfo> snps;
-    for (SnpInfo info; ifs2 >> info;) {
-    	snps.push_back(info);
+    PosInfoVector pv;
+    for (PosInfo info; ifs2 >> info;) {
+    	pv.push_back(info);
     }
-    snps.shrink_to_fit();        // request for the excess capacity to be released
-    SnpInfo s = snps.front();
-    SnpInfo e = snps.back();
-    std::string rg = s + e;
+    pv.shrink_to_fit();        // request for the excess capacity to be released
+    subpopmatrix(files, pv);
+    // std::string rg = pv.front() + pv.back();
 
-    SeqLib::BamReader r;
-    r.Open(files);
-    SeqLib::GenomicRegion gr(rg, r.Header());
-    r.SetRegion(gr);
+    // const int32_t M = files.size();
+    // const int32_t N = pv.size();
+    // std::vector<char> out;
+    // out.reserve(N*M);
+    // for (int32_t i = 0; i < M; ++i) {
+    // 	BamProcess reader;
+    // 	if (!reader.Open(files[i])) {
+    // 	    std::cerr << "ERROR: could not open file " << files[i] << std::endl;
+    // 	    exit(EXIT_FAILURE);
+    // 	}
+    // 	SeqLib::GenomicRegion gr(rg, reader.Header());
+    // 	reader.SetRegion(gr);
+    // 	reader.findSnpAtPos(pv);
+    // 	for (int32_t j = 0; j < N; ++j) {
+    // 	    out[j * M + i] = reader.snps[j];
+    // 	}
+    // }
 
-    SeqLib::BamRecord rec;
-    while(r.GetNextRecord(rec)) {
-    	std::cout << rec.Position() << std::endl;
-    }
+    // for (int32_t i = 0 ; i < N ; ++i) {
+    // 	std::cout << pv[i].chr << "\t" << pv[i].pos << "\t" << pv[i].ref << "\t" << pv[i].alt << "\t";
+    // 	for (int32_t j = 0; j < M; ++j) {
+    // 	    std::cout << out[i * M + j] << ",";
+    // 	}
+    // 	std::cout << std::endl;
+    // }
     
 }

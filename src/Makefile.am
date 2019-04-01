@@ -9,4 +9,4 @@ test_LDADD = \
 		$(top_builddir)/SeqLib/htslib/libhts.a \
 		$(LDFLAGS)
 
-test_SOURCES = test.cpp
+test_SOURCES = test.cpp BamProcess.cpp
