@@ -1,8 +1,8 @@
 # Process this file with autoconf to produce a configure script.
 # AC_PREREQ(2.59) ## specificy version of autoconf
-AC_INIT(test, 0.0, lizilong@bgi.com)
+AC_INIT(BaseVarC, 0.0, lizilong@bgi.com)
 AM_INIT_AUTOMAKE(foreign)
-AC_CONFIG_SRCDIR([src/test.cpp])
+AC_CONFIG_SRCDIR([src/BaseVarC.cpp])
 AC_CONFIG_HEADER([config.h])
 AM_MAINTAINER_MODE([disable])
 
