@@ -42,7 +42,6 @@ struct PosInfo {
 	return is;
     }
 };
-
 typedef std::vector<PosInfo> PosInfoVector;
 
 class BamProcess: public SeqLib:: BamReader {
@@ -54,18 +53,10 @@ class BamProcess: public SeqLib:: BamReader {
     std::vector<char> snps;
 
  private:
-    inline char getSnpCode(const SeqLib::BamRecord& r, const PosInfo& s);
+    inline char getSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const;
+    // inline void scanIndel();
+    // std::unordered_map<char, int> snpCode{ {'N', 0},{'A', 1},{'C', 2},{'G', 3},{'T', 4} };
 };
 
-// class PopMatrix {
-
-//  public:
-//     void subPopMatrix(const std::vector<std::string>& bams, const PosInfoVector& pv);
-
-// };
-
-// void PopMatrix::subPopMatrix(const std::vector<std::string>& bams, const PosInfoVector& pv) {
-    
-// }
 
 #endif
