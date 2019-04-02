@@ -61,10 +61,18 @@ void subPopMatrix (const std::vector<std::string>& bams , const PosInfoVector& p
 }
 
 void printOut (const std::vector<char>& out, const PosInfoVector& pv, const int32_t& N, const int32_t& M) {
+    char tmp;
     for (int32_t i = 0 ; i < N ; ++i) {
 	std::cout << pv[i].chr << " " << pv[i].pos << " " << pv[i].ref << " " << pv[i].alt << " ";
 	for (int32_t j = 0; j < M; ++j) {
-	    std::cout << out[i * M + j] << " ";
+	    if (out[i * M + j] == pv[i].ref) {
+		tmp = '0';
+	    }else if (out[i * M + j] == pv[i].alt) {
+		tmp = '1';
+	    }else{
+		tmp = '.';
+	    }
+	    std::cout << tmp << " ";
 	}
 	std::cout << std::endl;
     }
