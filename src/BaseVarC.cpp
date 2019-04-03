@@ -1,10 +1,8 @@
 #include <getopt.h>
-#include <string>
 #include <iterator>
 #include <fstream>
 #include <iostream>
-#include <cassert>
-#include <sstream>
+#include <thread>
 
 #include "SeqLib/BamReader.h"
 #include "SeqLib/ReadFilter.h"
@@ -93,12 +91,21 @@ void runPopMatrix (int argc, char **argv) {
     if (!ibam.is_open() || !ipos.is_open())
       std::cerr << "file can not be opend";
     std::vector<std::string> bams(std::istream_iterator<Line>{ibam},
-    	                           std::istream_iterator<Line>{});
+    	                          std::istream_iterator<Line>{});
     PosInfoVector pv;
     for (PosInfo p; ipos >> p;) pv.push_back(p);
     pv.shrink_to_fit();        // request for the excess capacity to be released
-    
-    subPopMatrix(bams, pv);
+    /* control the batchsize for each core */
+    int batch = 2000;
+    int nsub = pv.size() / batch;
+    for (int i = 0; i < nsub; ++i) {
+	auto first = pv.begin() + i * batch;
+	auto last = pv.begin() + (i + 1) * batch;
+	if (i == nsub - 1)
+	  last = pv.end();
+	PosInfoVector npv(first, last);
+	subPopMatrix(bams, npv);
+    }
 }
 
 void subPopMatrix (const std::vector<std::string>& bams , const PosInfoVector& pv) {
@@ -125,21 +132,21 @@ void subPopMatrix (const std::vector<std::string>& bams , const PosInfoVector& p
     
 }
 
-void writeOut (const char* out, const PosInfoVector& pv, const int32_t& N, const int32_t& M) {
-    char tmp;
-    for (int32_t i = 0 ; i < N ; ++i) {
-	std::cout << pv[i].chr << " " << pv[i].pos << " " << pv[i].ref << " " << pv[i].alt << " ";
-	for (int32_t j = 0; j < M; ++j) {
-	    if (out[i * M + j] == pv[i].ref) {
-		tmp = '0';
-	    }else if (out[i * M + j] == pv[i].alt) {
-		tmp = '1';
+void writeOut (const char* out, const PosInfoVector& pv, const int32_t& n, const int32_t& m) {
+    std::string sep = "\t";
+    for (int32_t i = 0 ; i < n ; ++i) {
+	std::ostringstream tmp;
+	tmp << pv[i].chr << sep << pv[i].pos << sep << pv[i].ref << sep << pv[i].alt;
+	for (int32_t j = 0; j < m; ++j) {
+	    if (out[i * m + j] == pv[i].ref) {
+		tmp << sep << '0';
+	    }else if (out[i * m + j] == pv[i].alt) {
+		tmp << sep << '1';
 	    }else{
-		tmp = '.';
+		tmp << sep << '.';
 	    }
-	    std::cout << tmp << " ";
 	}
-	std::cout << std::endl;
+	std::cout << tmp.str() << std::endl;
     }
 }
 
