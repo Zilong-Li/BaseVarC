@@ -1,5 +1,5 @@
-#ifndef __BAM_PROCESS_H__
-#define __BAM_PROCESS_H__
+#ifndef __BASEVARC_BAM_PROCESS_H__
+#define __BASEVARC_BAM_PROCESS_H__
 
 #include "SeqLib/BamReader.h"
 #include "SeqLib/BamWriter.h"
@@ -28,7 +28,7 @@ struct PosInfo {
     int pos;
     char ref;
     char alt;
-    // provide an overload of operator + to return samtools-like region
+    /* provide an overload of operator + to return samtools-like region */
     std::string operator+(const PosInfo& snp) const {
 	assert(this->chr == snp.chr);
 	const char *colon = ":";
@@ -54,7 +54,6 @@ class BamProcess: public SeqLib:: BamReader {
 
  private:
     inline char getSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const;
-    // inline void scanIndel();
     // std::unordered_map<char, int> snpCode{ {'N', 0},{'A', 1},{'C', 2},{'G', 3},{'T', 4} };
 };
 
