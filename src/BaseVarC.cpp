@@ -98,10 +98,10 @@ void runPopMatrix (int argc, char **argv) {
     /* control the batchsize for each core */
     int batch = 2000;
     int nsub = pv.size() / batch;
-    for (int i = 0; i < nsub; ++i) {
+    for (int i = 0; i <= nsub; ++i) {
 	auto first = pv.begin() + i * batch;
 	auto last = pv.begin() + (i + 1) * batch;
-	if (i == nsub - 1)
+	if (i == nsub)
 	  last = pv.end();
 	PosInfoVector npv(first, last);
 	subPopMatrix(bams, npv);
