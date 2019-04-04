@@ -2,18 +2,8 @@
 #define __BASEVARC_BAM_PROCESS_H__
 
 #include "SeqLib/BamReader.h"
-#include "SeqLib/BamWriter.h"
 #include "SeqLib/ReadFilter.h"
-
-namespace patch
-{
-    template < typename T > std::string to_string( const T& n )
-    {
-        std::ostringstream stm ;
-        stm << n ;
-        return stm.str() ;
-    }
-}
+#include "SeqLib/SeqLibUtils.h"
 
 struct Line {
     std::string data;
@@ -33,8 +23,8 @@ struct PosInfo {
 	assert(this->chr == snp.chr);
 	const char *colon = ":";
 	const char *hyphen = "-";
-	auto rg_s = patch::to_string(this->pos);
-	auto rg_e = patch::to_string(snp.pos);
+	auto rg_s = SeqLib::tostring(this->pos);
+	auto rg_e = SeqLib::tostring(snp.pos);
 	return snp.chr + colon + rg_s + hyphen + rg_e;
     }
     friend std::istream& operator>>(std::istream& is, PosInfo& info) {
@@ -48,7 +38,7 @@ class BamProcess: public SeqLib:: BamReader {
 
  public:
     BamProcess(){}
-    void findSnpAtPos(const PosInfoVector& pv);
+    void findSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVector& pv);
     int32_t mapq = 10;
     std::vector<char> snps;
 

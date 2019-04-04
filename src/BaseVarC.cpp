@@ -98,10 +98,10 @@ void runPopMatrix (int argc, char **argv) {
     /* control the batchsize for each core */
     int batch = 2000;
     int nsub = pv.size() / batch;
-    for (int i = 0; i <= nsub; ++i) {
+    for (int i = 0; i < nsub; ++i) {
 	auto first = pv.begin() + i * batch;
 	auto last = pv.begin() + (i + 1) * batch;
-	if (i == nsub)
+	if (i == nsub - 1)
 	  last = pv.end();
 	PosInfoVector npv(first, last);
 	subPopMatrix(bams, npv);
@@ -121,8 +121,7 @@ void subPopMatrix (const std::vector<std::string>& bams , const PosInfoVector& p
 	    exit(EXIT_FAILURE);
 	}
 	SeqLib::GenomicRegion gr(rg, reader.Header());
-	reader.SetRegion(gr);
-	reader.findSnpAtPos(pv);
+	reader.findSnpAtPos(gr, pv);
 	for (int32_t j = 0; j < N; ++j) {
 	    out[j * M + i] = reader.snps[j];
 	}

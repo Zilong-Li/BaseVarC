@@ -1,6 +1,7 @@
 #include "BamProcess.h"
 
-void BamProcess::findSnpAtPos(const PosInfoVector& pv) {
+void BamProcess::findSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVector& pv) {
+    SetRegion(gr);
     SeqLib::BamRecord r;
     /* check if the BAM is sorted */
     std::string hh = Header().AsString(); //std::string(header()->text)
