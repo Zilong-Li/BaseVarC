@@ -1,6 +1,7 @@
 #include "BamProcess.h"
 
 void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVector& pv) {
+
     SetRegion(gr);
     SeqLib::BamRecord r;
     /* check if the BAM is sorted */
@@ -12,31 +13,34 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVect
     	exit(EXIT_FAILURE);
     }
 
-    while (GetNextRecord(r), r.MapQuality() < mapq);  // need check out
-    int32_t pos = r.Position() + 1; // make 1-based
-    bool flag = true;
+    SeqLib::BamRecordVector rv;
+    while (GetNextRecord(r)) {
+	// filter reads by mapq and cigar type (only BAM_CMATCH);
+	if (r.MapQuality() < mapq) continue;
+	SeqLib::Cigar c = r.GetCigar();
+	if (c.size()!=1 || c[0].RawType() != BAM_CMATCH) continue;
+	rv.push_back(r);
+    } 
 
+    bool flag = false;
+    unsigned int i = 0;
+    r = rv[i];
     snps.reserve(pv.size());       // best practice;
     for (auto const& s: pv) {
 	/* select the first record covering this position */
-	if (s.pos < pos) {
-	    snps.push_back('N'); 
-	} else {
-	    // r.PositionEnd is 1-based
-	    while (s.pos > r.PositionEnd() && (flag = GetNextRecord(r))) {
-		while (r.MapQuality() < mapq && flag) flag = GetNextRecord(r);
-		SeqLib::Cigar c = r.GetCigar();
-		/* only choose the record with CigarType==BAM_CMATCH; */
-		while ((c.size()!=1 || c[0].RawType() != BAM_CMATCH) && flag) {
-		    flag = GetNextRecord(r);
-		    c=r.GetCigar();
-		}
-		pos = r.Position() + 1;
-	    }
-	    if (s.pos < pos || !flag) {
-		snps.push_back('N'); 
+	if (s.pos < r.Position() + 1) { // make 1-based
+	    snps.push_back('N');
+	}else{
+	     // r.PositionEnd is 1-based
+	    while (s.pos > r.PositionEnd()) {
+		if (i == rv.size() - 1) {flag = true; break;}
+		i++;
+		r = rv[i];
+	    } 
+	    if (s.pos < r.Position() + 1 || flag) {
+		snps.push_back('N');
 	    } else {
-		snps.push_back(GetSnpCode(r, s));
+	 	snps.push_back(GetSnpCode(r, s));
 	    }
 	}
     }

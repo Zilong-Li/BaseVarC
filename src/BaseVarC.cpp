@@ -95,13 +95,13 @@ void runPopMatrix (int argc, char **argv) {
     PosInfoVector pv;
     for (PosInfo p; ipos >> p;) pv.push_back(p);
     pv.shrink_to_fit();        // request for the excess capacity to be released
-    /* control the batchsize for each core */
-    int batch = 2000;
-    int nsub = pv.size() / batch;
-    for (int i = 0; i < nsub; ++i) {
-	auto first = pv.begin() + i * batch;
-	auto last = pv.begin() + (i + 1) * batch;
-	if (i == nsub - 1)
+    /* control the buffsize for each core */
+    int buffer = 1000;
+    int nsub = pv.size() / buffer;
+    for (int i = 0; i <= nsub; ++i) {
+	auto first = pv.begin() + i * buffer;
+	auto last = pv.begin() + (i + 1) * buffer;
+	if (i == nsub)
 	  last = pv.end();
 	subPopMatrix(bams, first, last);
     }
@@ -126,6 +126,9 @@ void subPopMatrix (const std::vector<std::string>& bams, PosInfoVector::const_it
 	for (int32_t j = 0; j < N; ++j) {
 	    out[j * M + i] = reader.snps[j];
 	}
+	if (!reader.Close()) {
+	    std::cerr << "Warning: could not close file" << bams[i] << std::endl;
+	}
     }
 
     writeOut(out, pv, N, M);
@@ -133,10 +136,11 @@ void subPopMatrix (const std::vector<std::string>& bams, PosInfoVector::const_it
 }
 
 void writeOut (const char* out, const PosInfoVector& pv, const int32_t& n, const int32_t& m) {
-    std::string sep = "\t";
+    std::string sep = " ";
     for (int32_t i = 0 ; i < n ; ++i) {
 	std::ostringstream tmp;
-	tmp << pv[i].chr << sep << pv[i].pos << sep << pv[i].ref << sep << pv[i].alt;
+	tmp << pv[i].chr << sep << pv[i].pos;
+	//tmp << pv[i].chr << sep << pv[i].pos << sep << pv[i].ref << sep << pv[i].alt;
 	for (int32_t j = 0; j < m; ++j) {
 	    if (out[i * m + j] == pv[i].ref) {
 		tmp << sep << '0';
