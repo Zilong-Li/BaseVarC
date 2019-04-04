@@ -1,6 +1,6 @@
 #include "BamProcess.h"
 
-void BamProcess::findSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVector& pv) {
+void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVector& pv) {
     SetRegion(gr);
     SeqLib::BamRecord r;
     /* check if the BAM is sorted */
@@ -18,7 +18,7 @@ void BamProcess::findSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVect
 
     snps.reserve(pv.size());       // best practice;
     for (auto const& s: pv) {
-	// select the first record covering this position
+	/* select the first record covering this position */
 	if (s.pos < pos) {
 	    snps.push_back('N'); 
 	} else {
@@ -26,7 +26,7 @@ void BamProcess::findSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVect
 	    while (s.pos > r.PositionEnd() && (flag = GetNextRecord(r))) {
 		while (r.MapQuality() < mapq && flag) flag = GetNextRecord(r);
 		SeqLib::Cigar c = r.GetCigar();
-		// only choose the BAM_CMATCH record
+		/* only choose the record with CigarType==BAM_CMATCH; */
 		while ((c.size()!=1 || c[0].RawType() != BAM_CMATCH) && flag) {
 		    flag = GetNextRecord(r);
 		    c=r.GetCigar();
@@ -36,16 +36,15 @@ void BamProcess::findSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVect
 	    if (s.pos < pos || !flag) {
 		snps.push_back('N'); 
 	    } else {
-		snps.push_back(getSnpCode(r, s));
+		snps.push_back(GetSnpCode(r, s));
 	    }
 	}
     }
 }
 
-inline char BamProcess::getSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const {
+inline char BamProcess::GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const {
     int32_t offset = s.pos - (r.Position() + 1);
-    // must copy r.r.Sequence();
-    char seq[r.Sequence().length() + 1];
+    char seq[r.Sequence().length() + 1]; // must copy r.r.Sequence();
     std::strcpy(seq, r.Sequence().c_str());
     return seq[offset];
 }

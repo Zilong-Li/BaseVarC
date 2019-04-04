@@ -36,7 +36,7 @@ static const char* POPMATRIX_MESSAGE =
 
 //void runBaseType(int argc, char **argv);
 void runPopMatrix(int argc, char **argv);
-void subPopMatrix (const std::vector<std::string>& , const PosInfoVector&);
+void subPopMatrix (const std::vector<std::string>& , PosInfoVector::const_iterator , PosInfoVector::const_iterator) ;
 void writeOut (const char* , const PosInfoVector& , const int32_t& , const int32_t&);
 void parseOptions(int argc, char **argv, const char* msg);
 
@@ -53,8 +53,8 @@ static const char* shortopts = "hv:q:l:p:o";
 static const struct option longopts[] = {
   { "help",                    no_argument, NULL, 'h' },
   { "verbose",                 no_argument, NULL, 'v' },
-  { "mapq",                    no_argument, NULL, 'q' },
-  { "bamlst",                 required_argument, NULL, 'l' },
+  { "mapq",                    required_argument, NULL, 'q' },
+  { "bamlst",                  required_argument, NULL, 'l' },
   { "posfile",                 required_argument, NULL, 'p' },
   { "output",                  required_argument, NULL, 'o' },
   { NULL, 0, NULL, 0 }
@@ -103,12 +103,13 @@ void runPopMatrix (int argc, char **argv) {
 	auto last = pv.begin() + (i + 1) * batch;
 	if (i == nsub - 1)
 	  last = pv.end();
-	PosInfoVector npv(first, last);
-	subPopMatrix(bams, npv);
+	subPopMatrix(bams, first, last);
     }
 }
 
-void subPopMatrix (const std::vector<std::string>& bams , const PosInfoVector& pv) {
+void subPopMatrix (const std::vector<std::string>& bams, PosInfoVector::const_iterator first, PosInfoVector::const_iterator last) {
+
+    PosInfoVector pv(first, last);
     const int32_t M = bams.size();
     const int32_t N = pv.size();
     char out[N * M];
@@ -121,7 +122,7 @@ void subPopMatrix (const std::vector<std::string>& bams , const PosInfoVector& p
 	    exit(EXIT_FAILURE);
 	}
 	SeqLib::GenomicRegion gr(rg, reader.Header());
-	reader.findSnpAtPos(gr, pv);
+	reader.FindSnpAtPos(gr, pv);
 	for (int32_t j = 0; j < N; ++j) {
 	    out[j * M + i] = reader.snps[j];
 	}
