@@ -52,13 +52,14 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVect
 		    }
 		    idxl += cf.Length();
 		}
-		if (fail && i < rv.size()) {
+		if (fail && i < rv.size() - 1) {
 		    i++;
 		    r = rv[i];
 		} else {
 		    break;
 		}
 	    }
+	    // here we go
 	    if (s.pos < r.Position() + 1 || flag) {
 		snps.push_back('.');
 	    } else {
@@ -69,10 +70,10 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVect
 }
 
 void BamProcess::PrintOut () const {
-    std::string sep = " ";
+    std::string sep = "\t";
     std::ostringstream tmp;
     for (auto const& s: snps) {
-	tmp << sep << s;
+	tmp << s << sep;
     }
     std::cout << tmp.str() << std::endl;
 }

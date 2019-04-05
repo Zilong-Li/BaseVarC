@@ -29,7 +29,7 @@ static const char* POPMATRIX_MESSAGE =
 "Commands:\n"
 "  --bamlist,    -l        BAM/CRAM files list, one file per row.\n"
 "  --posfile,    -p        Position file <CHRID POS REF ALT>\n"
-"  --output,     -o        Output path\n"
+"  --output,     -o        Output path(default stdout)\n"
 "  --mapq,       -q <INT>  Mapping quality >= INT. [10]\n"
 "  --verbose,    -v        Set verbose output\n"
 "\nReport bugs to lizilong@bgi.com \n\n";
