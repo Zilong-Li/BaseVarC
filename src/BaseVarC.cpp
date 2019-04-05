@@ -36,7 +36,7 @@ static const char* POPMATRIX_MESSAGE =
 
 //void runBaseType(int argc, char **argv);
 void runPopMatrix(int argc, char **argv);
-void subPopMatrix (const std::vector<std::string>& , PosInfoVector::const_iterator , PosInfoVector::const_iterator) ;
+void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv);
 void writeOut (const char* , const PosInfoVector& , const int32_t& , const int32_t&);
 void parseOptions(int argc, char **argv, const char* msg);
 
@@ -95,19 +95,11 @@ void runPopMatrix (int argc, char **argv) {
     PosInfoVector pv;
     for (PosInfo p; ipos >> p;) pv.push_back(p);
     pv.shrink_to_fit();        // request for the excess capacity to be released
-    /* control the buffsize for each core */
-    int buffer = 1000;
-    int nsub = pv.size() / buffer;
-    for (int i = 0; i <= nsub; ++i) {
-	auto first = pv.begin() + i * buffer;
-	auto last = pv.begin() + (i + 1) * buffer;
-	if (i == nsub)
-	  last = pv.end();
-	subPopMatrix(bams, first, last);
-    }
+
+    subPopMatrix(bams, first, last);
 }
 
-void subPopMatrix (const std::vector<std::string>& bams, PosInfoVector::const_iterator first, PosInfoVector::const_iterator last) {
+void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv) {
 
     PosInfoVector pv(first, last);
     const int32_t M = bams.size();
