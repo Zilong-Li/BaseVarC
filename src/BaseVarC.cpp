@@ -96,12 +96,11 @@ void runPopMatrix (int argc, char **argv) {
     for (PosInfo p; ipos >> p;) pv.push_back(p);
     pv.shrink_to_fit();        // request for the excess capacity to be released
 
-    subPopMatrix(bams, first, last);
+    subPopMatrix(bams, pv);
 }
 
 void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv) {
 
-    PosInfoVector pv(first, last);
     const int32_t M = bams.size();
     const int32_t N = pv.size();
     char out[N * M];
