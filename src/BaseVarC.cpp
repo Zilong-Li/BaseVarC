@@ -37,7 +37,6 @@ static const char* POPMATRIX_MESSAGE =
 //void runBaseType(int argc, char **argv);
 void runPopMatrix(int argc, char **argv);
 void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv);
-void writeOut (const char* , const PosInfoVector& , const int32_t& , const int32_t&);
 void parseOptions(int argc, char **argv, const char* msg);
 
 namespace opt {
@@ -96,17 +95,42 @@ void runPopMatrix (int argc, char **argv) {
     for (PosInfo p; ipos >> p;) pv.push_back(p);
     pv.shrink_to_fit();        // request for the excess capacity to be released
 
+    std::string sep = "\t";
+    std::ostringstream tmp;
+    tmp << "#";
+    for (auto const& p: pv) {
+	tmp << p.chr << sep;
+    }
+    std::cout << tmp.str() << std::endl;
+    tmp.str("");
+    tmp << "#";
+    for (auto const& p: pv) {
+	tmp << p.pos << sep;
+    }
+    std::cout << tmp.str() << std::endl;
+    tmp.str("");
+    tmp << "#";
+    for (auto const& p: pv) {
+	tmp << p.ref << sep;
+    }
+    std::cout << tmp.str() << std::endl;
+    tmp.str("");
+    tmp << "#";
+    for (auto const& p: pv) {
+	tmp << p.alt << sep;
+    }
+    std::cout << tmp.str() << std::endl;
+    tmp.str("");
+
     subPopMatrix(bams, pv);
 }
 
 void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv) {
 
-    const int32_t M = bams.size();
-    const int32_t N = pv.size();
-    char out[N * M];
+    const int32_t N = bams.size();
     std::string rg = pv.front() + pv.back();
 
-    for (int32_t i = 0; i < M; ++i) {
+    for (int32_t i = 0; i < N; ++i) {
 	BamProcess reader;
 	if (!reader.Open(bams[i])) {
 	    std::cerr << "ERROR: could not open file " << bams[i] << std::endl;
@@ -114,35 +138,12 @@ void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv
 	}
 	SeqLib::GenomicRegion gr(rg, reader.Header());
 	reader.FindSnpAtPos(gr, pv);
-	for (int32_t j = 0; j < N; ++j) {
-	    out[j * M + i] = reader.snps[j];
-	}
+	reader.PrintOut();
 	if (!reader.Close()) {
-	    std::cerr << "Warning: could not close file" << bams[i] << std::endl;
+	    std::cerr << "Warning: could not close file " << bams[i] << std::endl;
 	}
     }
-
-    writeOut(out, pv, N, M);
     
-}
-
-void writeOut (const char* out, const PosInfoVector& pv, const int32_t& n, const int32_t& m) {
-    std::string sep = " ";
-    for (int32_t i = 0 ; i < n ; ++i) {
-	std::ostringstream tmp;
-	tmp << pv[i].chr << sep << pv[i].pos;
-	//tmp << pv[i].chr << sep << pv[i].pos << sep << pv[i].ref << sep << pv[i].alt;
-	for (int32_t j = 0; j < m; ++j) {
-	    if (out[i * m + j] == pv[i].ref) {
-		tmp << sep << '0';
-	    }else if (out[i * m + j] == pv[i].alt) {
-		tmp << sep << '1';
-	    }else{
-		tmp << sep << '.';
-	    }
-	}
-	std::cout << tmp.str() << std::endl;
-    }
 }
 
 void parseOptions(int argc, char **argv, const char* msg) {

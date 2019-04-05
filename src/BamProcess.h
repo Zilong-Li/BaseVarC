@@ -39,6 +39,7 @@ class BamProcess: public SeqLib:: BamReader {
  public:
     BamProcess(){}
     void FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVector& pv);
+    void PrintOut () const;
     int32_t mapq = 10;
     std::vector<char> snps;
 
