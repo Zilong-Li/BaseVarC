@@ -86,6 +86,7 @@ int main(int argc, char** argv)
 void runPopMatrix (int argc, char **argv) {
     parseOptions(argc, argv, POPMATRIX_MESSAGE);
 
+    std::cerr << "popmatrix start" << std::endl;
     std::ifstream ibam(opt::bamlst);
     std::ifstream ipos(opt::posfile);
     if (!ibam.is_open() || !ipos.is_open()) {

@@ -19,9 +19,10 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVect
     } 
 
     bool flag = false;
-    uint32_t  i = 0;
+    uint32_t  i = 0, j = 0;
     r = rv[i];
     snps.reserve(pv.size());       // best practice;
+    const std::string SKIP = "DSPN";
     for (auto const& s: pv) {
 	/* select the first record covering this position */
 	if (s.pos < r.Position() + 1) { // make 1-based
@@ -30,15 +31,37 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVect
 	     // r.PositionEnd is 1-based
 	    while (s.pos > r.PositionEnd()) {
 		if (i == rv.size() - 1) {flag = true; break;}
-		i++;
+		j = ++i;
 		r = rv[i];
 	    } 
+	    // find the proper read here
+	    while (true) {
+		SeqLib::Cigar c = r.GetCigar();
+		int track = r.Position();
+		bool fail = false;
+		for (auto const& cf: c) {
+		    auto t = cf.Type();
+		    if (t == 'H') continue;
+		    if (t != 'I') track += cf.Length();
+		    // skip read if position locus at a SKIP cigar field;
+		    if (track >= s.pos) {
+			if (SKIP.find(t) != std::string::npos) fail = true;
+			break;
+		    }
+		}
+		if (fail && j < rv.size() - 1) {
+		    r = rv[++j];
+		} else {
+		    break;
+		}
+	    }
 	    // now we pick this read.
 	    // here we go
 	    if (s.pos < r.Position() + 1 || flag) {
 		snps.push_back('.');
 	    } else {
 	 	snps.push_back(GetSnpCode(r, s));
+		r = rv[i];     // back to index i 
 	    }
 	}
     }
@@ -57,7 +80,6 @@ char BamProcess::GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const 
     SeqLib::Cigar c = r.GetCigar();
     uint32_t offset = s.pos - (r.Position() + 1);
     int track = r.Position();
-    const std::string SKIP = "DSPN";
     for (auto const& cf: c) {
 	auto t = cf.Type();
 	if (t == 'H') continue;
@@ -71,8 +93,6 @@ char BamProcess::GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const 
 	    default : break;
 	    }
 	} else {
-	    // set as N if position locus at a SKIP cigar field;
-	    if (SKIP.find(t) != std::string::npos) return '.';
 	    break;
 	}
     }
