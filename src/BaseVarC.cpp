@@ -85,10 +85,13 @@ int main(int argc, char** argv)
 
 void runPopMatrix (int argc, char **argv) {
     parseOptions(argc, argv, POPMATRIX_MESSAGE);
+
     std::ifstream ibam(opt::bamlst);
     std::ifstream ipos(opt::posfile);
-    if (!ibam.is_open() || !ipos.is_open())
-      std::cerr << "file can not be opend";
+    if (!ibam.is_open() || !ipos.is_open()) {
+	std::cerr << "bamlist or posifle can not be opend" << std::endl;
+	exit(EXIT_FAILURE);
+    }
     std::vector<std::string> bams(std::istream_iterator<Line>{ibam},
     	                          std::istream_iterator<Line>{});
     PosInfoVector pv;
@@ -123,6 +126,7 @@ void runPopMatrix (int argc, char **argv) {
     tmp.str("");
 
     subPopMatrix(bams, pv);
+    std::cerr << "popmatrix done" << std::endl;
 }
 
 void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv) {
@@ -130,8 +134,10 @@ void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv
     const int32_t N = bams.size();
     std::string rg = pv.front() + pv.back();
 
+    uint32_t count = 0;
     for (int32_t i = 0; i < N; ++i) {
 	BamProcess reader;
+	if (!(++count % 1000)) std::cerr << "Processing the number " << count / 1000 << "k bam" << std::endl;
 	if (!reader.Open(bams[i])) {
 	    std::cerr << "ERROR: could not open file " << bams[i] << std::endl;
 	    exit(EXIT_FAILURE);

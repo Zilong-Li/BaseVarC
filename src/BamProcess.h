@@ -38,13 +38,14 @@ class BamProcess: public SeqLib:: BamReader {
 
  public:
     BamProcess(){}
+    //void FindSnpAtPos(const SeqLib::GenomicRegion& gr);
     void FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVector& pv);
     void PrintOut () const;
     int32_t mapq = 10;
     std::vector<char> snps;
 
  private:
-    inline char GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const;
+    char GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const;
     // std::unordered_map<char, int> snpCode{ {'N', 0},{'A', 1},{'C', 2},{'G', 3},{'T', 4} };
 };
 
