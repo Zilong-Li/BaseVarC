@@ -144,6 +144,7 @@ void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv
 	    exit(EXIT_FAILURE);
 	}
 	SeqLib::GenomicRegion gr(rg, reader.Header());
+	gr.Pad(1000);
 	reader.FindSnpAtPos(gr, pv);
 	reader.PrintOut();
 	if (!reader.Close()) {

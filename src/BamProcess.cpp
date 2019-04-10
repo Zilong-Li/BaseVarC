@@ -41,8 +41,8 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVect
 		bool fail = false;
 		for (auto const& cf: c) {
 		    auto t = cf.Type();
-		    if (t == 'H') continue;
-		    if (t != 'I' || t != 'S') track += cf.Length();
+		    if (t == 'H' || t == 'S') continue;
+		    if (t != 'I') track += cf.Length();
 		    // skip read if position locus at a SKIP cigar field;
 		    if (track >= s.pos) {
 			if (SKIP.find(t) != std::string::npos) fail = true;
@@ -82,9 +82,8 @@ char BamProcess::GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const 
     int track = r.Position();
     for (auto const& cf: c) {
 	auto t = cf.Type();
-	if (t == 'H') continue;
 	if (t != 'I' || t != 'S') track += cf.Length();
-	if (track < s.pos) {
+	if (track <= s.pos) {
 	    switch (cf.Type()) {
 	    case 'I': offset += cf.Length(); break;
 	    case 'S': offset += cf.Length(); break;
