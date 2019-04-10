@@ -22,7 +22,7 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVect
     uint32_t  i = 0, j = 0;
     r = rv[i];
     snps.reserve(pv.size());       // best practice;
-    const std::string SKIP = "DSPN";
+    const std::string SKIP = "DPN";
     for (auto const& s: pv) {
 	/* select the first record covering this position */
 	if (s.pos < r.Position() + 1) { // make 1-based
@@ -42,7 +42,7 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVect
 		for (auto const& cf: c) {
 		    auto t = cf.Type();
 		    if (t == 'H') continue;
-		    if (t != 'I') track += cf.Length();
+		    if (t != 'I' || t != 'S') track += cf.Length();
 		    // skip read if position locus at a SKIP cigar field;
 		    if (track >= s.pos) {
 			if (SKIP.find(t) != std::string::npos) fail = true;
@@ -56,13 +56,13 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVect
 		}
 	    }
 	    // now we pick this read.
-	    // here we go
 	    if (s.pos < r.Position() + 1 || flag) {
 		snps.push_back('.');
 	    } else {
 	 	snps.push_back(GetSnpCode(r, s));
-		r = rv[i];     // back to index i 
 	    }
+	    r = rv[i];     // all back to index i 
+	    j = i;
 	}
     }
 }
@@ -83,10 +83,11 @@ char BamProcess::GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const 
     for (auto const& cf: c) {
 	auto t = cf.Type();
 	if (t == 'H') continue;
-	if (t != 'I') track += cf.Length();
+	if (t != 'I' || t != 'S') track += cf.Length();
 	if (track < s.pos) {
 	    switch (cf.Type()) {
 	    case 'I': offset += cf.Length(); break;
+	    case 'S': offset += cf.Length(); break;
 	    case 'D': offset -= cf.Length(); break;
 	    case 'P': offset -= cf.Length(); break;
 	    case 'N': offset -= cf.Length(); break;
