@@ -82,8 +82,8 @@ char BamProcess::GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const 
     int track = r.Position();
     for (auto const& cf: c) {
 	auto t = cf.Type();
-	if (t != 'I' || t != 'S') track += cf.Length();
-	if (track <= s.pos) {
+	if (t != 'I' && t != 'S' && t != 'H') track += cf.Length();
+	if (track < s.pos) {
 	    switch (cf.Type()) {
 	    case 'I': offset += cf.Length(); break;
 	    case 'S': offset += cf.Length(); break;
