@@ -2,10 +2,6 @@
 #include <iterator>
 #include <fstream>
 #include <iostream>
-#include <thread>
-
-#include "SeqLib/BamReader.h"
-#include "SeqLib/ReadFilter.h"
 #include "BamProcess.h"
 
 static const char* BASEVARC_USAGE_MESSAGE = 
@@ -59,8 +55,7 @@ static const struct option longopts[] = {
   { NULL, 0, NULL, 0 }
 };
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     if (argc <= 1 ) {
 	std::cerr << BASEVARC_USAGE_MESSAGE;
 	return 0;
@@ -84,8 +79,8 @@ int main(int argc, char** argv)
 }
 
 void runPopMatrix (int argc, char **argv) {
-    parseOptions(argc, argv, POPMATRIX_MESSAGE);
 
+    parseOptions(argc, argv, POPMATRIX_MESSAGE);
     std::cerr << "popmatrix start" << std::endl;
     std::ifstream ibam(opt::bamlst);
     std::ifstream ipos(opt::posfile);

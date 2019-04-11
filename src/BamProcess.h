@@ -2,7 +2,6 @@
 #define __BASEVARC_BAM_PROCESS_H__
 
 #include "SeqLib/BamReader.h"
-#include "SeqLib/ReadFilter.h"
 #include "SeqLib/SeqLibUtils.h"
 
 struct Line {
