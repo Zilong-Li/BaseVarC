@@ -7,7 +7,7 @@
 static const char* BASEVARC_USAGE_MESSAGE = 
 "Program: BaseVarC\n"
 "Contact: Zilong Li [lizilong@bgi.com]\n"
-"Usage: BaseVarC <command> [options]\n\n"
+"Usage  : BaseVarC <command> [options]\n\n"
 "Commands:\n"
 "           basetype       Variants Caller\n"
 "           popmatrix      Create population matrix at specific positions.\n" 
@@ -16,12 +16,12 @@ static const char* BASEVARC_USAGE_MESSAGE =
 static const char* BASETYPE_MESSAGE = 
 "Program: BaseVarC basetype\n"
 "Contact: Zilong Li [lizilong@bgi.com]\n"
-"Usage: BaseVarC basetype [options]\n\n";
+"Usage  : BaseVarC basetype [options]\n\n";
 
 static const char* POPMATRIX_MESSAGE = 
 "Program: BaseVarC popmatrix\n"
 "Contact: Zilong Li [lizilong@bgi.com]\n"
-"Usage: BaseVarC popmatrix [options]\n\n"
+"Usage  : BaseVarC popmatrix [options]\n\n"
 "Commands:\n"
 "  --bamlist,    -l        BAM/CRAM files list, one file per row.\n"
 "  --posfile,    -p        Position file <CHRID POS REF ALT>\n"
@@ -96,25 +96,21 @@ void runPopMatrix (int argc, char **argv) {
 
     std::string sep = "\t";
     std::ostringstream tmp;
-    tmp << "#";
     for (auto const& p: pv) {
 	tmp << p.chr << sep;
     }
     std::cout << tmp.str() << std::endl;
     tmp.str("");
-    tmp << "#";
     for (auto const& p: pv) {
 	tmp << p.pos << sep;
     }
     std::cout << tmp.str() << std::endl;
     tmp.str("");
-    tmp << "#";
     for (auto const& p: pv) {
 	tmp << p.ref << sep;
     }
     std::cout << tmp.str() << std::endl;
     tmp.str("");
-    tmp << "#";
     for (auto const& p: pv) {
 	tmp << p.alt << sep;
     }
