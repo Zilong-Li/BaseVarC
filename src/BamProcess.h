@@ -4,7 +4,8 @@
 #include "SeqLib/BamReader.h"
 #include "SeqLib/SeqLibUtils.h"
 
-struct Line {
+struct Line
+{
     std::string data;
     operator std::string const&() const {return data;}
     friend std::istream& operator>>(std::istream& is, Line& line) {
@@ -12,7 +13,8 @@ struct Line {
     }
 };
 
-struct PosInfo {
+struct PosInfo
+{
     std::string chr;
     int pos;
     char ref;
@@ -33,20 +35,39 @@ struct PosInfo {
 };
 typedef std::vector<PosInfo> PosInfoVector;
 
-class BamProcess: public SeqLib:: BamReader {
+struct AlleleInfo
+{
+    unsigned int base:  2;      // 0 : A, 1 : C, 2 : G, 3 : T
+    unsigned int strand:1;      // 0 : -, 1 : +
+    unsigned char qual: 8;
+    unsigned int mapq:  8;
+    unsigned int rpr:   8;
+};
+typedef std::unordered_map<uint32_t, AlleleInfo> PosAlleleMap;
 
+class BamProcess: public SeqLib:: BamReader
+{
  public:
     BamProcess(){}
     ~BamProcess(){}
-    //void FindSnpAtPos(const SeqLib::GenomicRegion& gr);
+
+    void FindSnpAtPos(const SeqLib::GenomicRegion& gr, const std::vector<uint32_t>& pv);
+
     void FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVector& pv);
+
     void PrintOut () const;
+
     int32_t mapq = 10;
     std::vector<char> snps;
+    std::unordered_map<char, int> base_m{ {'A', 0},{'C', 1},{'G', 2},{'T', 3} };
+    PosAlleleMap allele_m;
 
  private:
     char GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const;
-    // std::unordered_map<char, int> snpCode{ {'N', 0},{'A', 1},{'C', 2},{'G', 3},{'T', 4} };
+
+    void GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, AlleleInfo& ale) const;
+
+    uint32_t GetOffset(const SeqLib::Cigar& c, const uint32_t pos) const;
 };
 
 
