@@ -22,7 +22,7 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const std::vector
     uint32_t  i = 0, j = 0;
     r = rv[i];
     const std::string SKIP = "DPN";
-    AlleleInfo ale;
+    AlleleInfo ale; // store allele info tempory
     for (auto const& pos: pv) {
 	/* select the first record covering this position */
 	if (pos < r.Position() + 1) { // make 1-based
