@@ -1,6 +1,75 @@
 #include "BamProcess.h"
 
-void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVector& pv) {
+void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const std::vector<uint32_t>& pv)
+{
+    SetRegion(gr);
+    SeqLib::BamRecord r;
+    // check if the BAM is sorted 
+    std::string hh = Header().AsString(); //std::string(header()->text)
+    bool sorted = hh.find("SO:coord") != std::string::npos;
+    if (!sorted) {
+    	std::cerr << "ERROR: BAM file does not appear to be sorted (no SO:coordinate) found in header." << std::endl;
+    	std::cerr << "       Sorted BAMs are required." << std::endl;
+    	exit(EXIT_FAILURE);
+    }
+    // filter reads here
+    SeqLib::BamRecordVector rv;
+    while (GetNextRecord(r)) {
+	if (r.MapQuality() < mapq) continue;
+	rv.push_back(r);
+    } 
+    bool flag = false;
+    uint32_t  i = 0, j = 0;
+    r = rv[i];
+    const std::string SKIP = "DPN";
+    AlleleInfo ale;
+    for (auto const& pos: pv) {
+	/* select the first record covering this position */
+	if (pos < r.Position() + 1) { // make 1-based
+	    continue;
+	}else{
+	     // r.PositionEnd is 1-based
+	    while (pos > r.PositionEnd()) {
+		if (i == rv.size() - 1) {flag = true; break;}
+		j = ++i;
+		r = rv[i];
+	    } 
+	    // find the proper read here
+	    while (true) {
+		SeqLib::Cigar c = r.GetCigar();
+		int track = r.Position();
+		bool fail = false;
+		for (auto const& cf: c) {
+		    auto t = cf.Type();
+		    if (t == 'H' || t == 'S') continue;
+		    if (t != 'I') track += cf.Length();
+		    // skip read if position locus at a SKIP cigar field;
+		    if (track >= s.pos) {
+			if (SKIP.find(t) != std::string::npos) fail = true;
+			break;
+		    }
+		}
+		if (fail && j < rv.size() - 1) {
+		    r = rv[++j];
+		} else {
+		    break;
+		}
+	    }
+	    // now we pick this read.
+	    if (pos < r.Position() + 1 || flag) {
+		continue;    // ignore N 
+	    } else {
+		GetAllele(r, pos, ale);
+		allele_m.insert({pos, ale});
+	    }
+	    r = rv[i];     // all back to index i 
+	    j = i;
+	}
+    }
+}
+
+void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVector& pv)
+{
     SetRegion(gr);
     SeqLib::BamRecord r;
     // check if the BAM is sorted 
@@ -67,7 +136,8 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVect
     }
 }
 
-void BamProcess::PrintOut () const {
+void BamProcess::PrintOut () const
+{
     std::string sep = "\t";
     std::ostringstream tmp;
     for (auto const& s: snps) {
@@ -76,14 +146,50 @@ void BamProcess::PrintOut () const {
     std::cout << tmp.str() << std::endl;
 }
 
-char BamProcess::GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const {
+char BamProcess::GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const
+{
     SeqLib::Cigar c = r.GetCigar();
-    uint32_t offset = s.pos - (r.Position() + 1);
+    uint32_t offset = GetOffset(c, s.pos);
+    char seq[r.Sequence().length() + 1];     
+    std::strcpy(seq, r.Sequence().c_str());    // must copy r.r.Sequence();
+    char x = seq[offset];
+    if (x == s.ref) {
+	return '0';
+    } else if (x == s.alt) {
+	return '1';
+    } else {
+	return '.';
+    }
+}
+
+void BamProcess::GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, AlleleInfo& ale) const
+{
+    SeqLib::Cigar c = r.GetCigar();
+    uint32_t offset = GetOffset(c, pos);
+    char seq[r.Sequence().length() + 1];     
+    std::strcpy(seq, r.Sequence().c_str());    // must copy r.r.Sequence();
+    char qualities[r.Qualities().length() + 1];
+    std::strcpy(qualities, r.Qualities().c_str());   
+    // assign allele info
+    ale.base = base_m.at(seq[offset]);
+    ale.qual = qualities[offset];
+    ale.mapq = r.MapQuality();
+    ale.rpr = offset + 1;
+    if (r.ReverseFlag()) {
+	ale.strand = 0;
+    } else {
+	ale.strand = 1;
+    }
+}
+
+uint32_t BamProcess::GetOffset(const SeqLib::Cigar& c, const uint32_t pos) const
+{
+    uint32_t offset = pos - (r.Position() + 1);
     int track = r.Position();
     for (auto const& cf: c) {
 	auto t = cf.Type();
 	if (t != 'I' && t != 'S' && t != 'H') track += cf.Length();
-	if (track < s.pos) {
+	if (track < pos) {
 	    switch (cf.Type()) {
 	    case 'I': offset += cf.Length(); break;
 	    case 'S': offset += cf.Length(); break;
@@ -96,14 +202,5 @@ char BamProcess::GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const 
 	    break;
 	}
     }
-    char seq[r.Sequence().length() + 1];     
-    std::strcpy(seq, r.Sequence().c_str());    // must copy r.r.Sequence();
-    char x = seq[offset];
-    if (x == s.ref) {
-	return '0';
-    } else if (x == s.alt) {
-	return '1';
-    } else {
-	return '.';
-    }
+    return offset;
 }

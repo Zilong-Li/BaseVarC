@@ -55,7 +55,8 @@ static const struct option longopts[] = {
   { NULL, 0, NULL, 0 }
 };
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
     if (argc <= 1 ) {
 	std::cerr << BASEVARC_USAGE_MESSAGE;
 	return 0;
@@ -78,8 +79,8 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void runPopMatrix (int argc, char **argv) {
-
+void runPopMatrix (int argc, char **argv)
+{
     parseOptions(argc, argv, POPMATRIX_MESSAGE);
     std::cerr << "popmatrix start" << std::endl;
     std::ifstream ibam(opt::bamlst);
@@ -121,8 +122,8 @@ void runPopMatrix (int argc, char **argv) {
     std::cerr << "popmatrix done" << std::endl;
 }
 
-void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv) {
-
+void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv)
+{
     const int32_t N = bams.size();
     std::string rg = pv.front() + pv.back();
 
@@ -135,6 +136,7 @@ void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv
 	    exit(EXIT_FAILURE);
 	}
 	SeqLib::GenomicRegion gr(rg, reader.Header());
+	// bam is 0-based and rg pos is 1-based 
 	gr.Pad(1000);
 	reader.FindSnpAtPos(gr, pv);
 	reader.PrintOut();
@@ -145,7 +147,8 @@ void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv
     
 }
 
-void parseOptions(int argc, char **argv, const char* msg) {
+void parseOptions(int argc, char **argv, const char* msg)
+{
     bool die = false;
     bool help = false;
     for (char c; (c = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1;) {
