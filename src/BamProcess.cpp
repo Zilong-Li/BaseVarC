@@ -1,6 +1,6 @@
 #include "BamProcess.h"
 
-void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const std::vector<uint32_t>& pv)
+void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const std::vector<int32_t>& pv)
 {
     SetRegion(gr);
     SeqLib::BamRecord r;
@@ -44,7 +44,7 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const std::vector
 		    if (t == 'H' || t == 'S') continue;
 		    if (t != 'I') track += cf.Length();
 		    // skip read if position locus at a SKIP cigar field;
-		    if (track >= s.pos) {
+		    if (track >= pos) {
 			if (SKIP.find(t) != std::string::npos) fail = true;
 			break;
 		    }
@@ -148,8 +148,7 @@ void BamProcess::PrintOut () const
 
 char BamProcess::GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const
 {
-    SeqLib::Cigar c = r.GetCigar();
-    uint32_t offset = GetOffset(c, s.pos);
+    uint32_t offset = GetOffset(r, s.pos);
     char seq[r.Sequence().length() + 1];     
     std::strcpy(seq, r.Sequence().c_str());    // must copy r.r.Sequence();
     char x = seq[offset];
@@ -164,8 +163,7 @@ char BamProcess::GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const
 
 void BamProcess::GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, AlleleInfo& ale) const
 {
-    SeqLib::Cigar c = r.GetCigar();
-    uint32_t offset = GetOffset(c, pos);
+    uint16_t offset = GetOffset(r, pos);
     char seq[r.Sequence().length() + 1];     
     std::strcpy(seq, r.Sequence().c_str());    // must copy r.r.Sequence();
     char qualities[r.Qualities().length() + 1];
@@ -182,10 +180,11 @@ void BamProcess::GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, Allel
     }
 }
 
-uint32_t BamProcess::GetOffset(const SeqLib::Cigar& c, const uint32_t pos) const
+uint16_t BamProcess::GetOffset(const SeqLib::BamRecord& r, const uint32_t pos) const
 {
-    uint32_t offset = pos - (r.Position() + 1);
-    int track = r.Position();
+    SeqLib::Cigar c = r.GetCigar();
+    uint16_t offset = pos - (r.Position() + 1);
+    uint32_t track = r.Position();
     for (auto const& cf: c) {
 	auto t = cf.Type();
 	if (t != 'I' && t != 'S' && t != 'H') track += cf.Length();

@@ -51,7 +51,7 @@ class BamProcess: public SeqLib:: BamReader
     BamProcess(){}
     ~BamProcess(){}
 
-    void FindSnpAtPos(const SeqLib::GenomicRegion& gr, const std::vector<uint32_t>& pv);
+    void FindSnpAtPos(const SeqLib::GenomicRegion& gr, const std::vector<int32_t>& pv);
 
     void FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVector& pv);
 
@@ -67,7 +67,7 @@ class BamProcess: public SeqLib:: BamReader
 
     void GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, AlleleInfo& ale) const;
 
-    uint32_t GetOffset(const SeqLib::Cigar& c, const uint32_t pos) const;
+    uint16_t GetOffset(const SeqLib::BamRecord& r, const uint32_t pos) const;
 };
 
 
