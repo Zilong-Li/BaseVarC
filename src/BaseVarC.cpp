@@ -2,6 +2,8 @@
 #include <iterator>
 #include <fstream>
 #include <iostream>
+
+#include "FastaReader.h"
 #include "BamProcess.h"
 
 static const char* BASEVARC_USAGE_MESSAGE = 
@@ -30,7 +32,7 @@ static const char* POPMATRIX_MESSAGE =
 "  --verbose,    -v        Set verbose output\n"
 "\nReport bugs to lizilong@bgi.com \n\n";
 
-//void runBaseType(int argc, char **argv);
+void runBaseType(int argc, char **argv);
 void runPopMatrix(int argc, char **argv);
 void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv);
 void parseOptions(int argc, char **argv, const char* msg);
@@ -39,18 +41,22 @@ namespace opt {
     static bool verbose = false;
     static int mapq;
     static std::string bamlst;
+    static std::string reference;
     static std::string posfile;
+    static std::string region;
     static std::string output;
 }
 
-static const char* shortopts = "hv:q:l:p:o";
+static const char* shortopts = "hv:q:l:r:p:g:o";
 
 static const struct option longopts[] = {
   { "help",                    no_argument, NULL, 'h' },
   { "verbose",                 no_argument, NULL, 'v' },
   { "mapq",                    required_argument, NULL, 'q' },
   { "bamlst",                  required_argument, NULL, 'l' },
+  { "reference",               required_argument, NULL, 'r' },
   { "posfile",                 required_argument, NULL, 'p' },
+  { "region",                  required_argument, NULL, 'g' },
   { "output",                  required_argument, NULL, 'o' },
   { NULL, 0, NULL, 0 }
 };
@@ -66,8 +72,7 @@ int main(int argc, char** argv)
 	    std::cerr << BASEVARC_USAGE_MESSAGE;
 	    return 0;
 	} else if (command == "basetype") {
-	    std::cerr << BASETYPE_MESSAGE;
-	    return 0;
+	    runBaseType(argc - 1, argv + 1);
 	} else if (command == "popmatrix") {
 	    runPopMatrix(argc - 1, argv + 1);
 	} else {
@@ -77,6 +82,17 @@ int main(int argc, char** argv)
     }
 
     return 0;
+}
+
+void runBaseType(int argc, char **argv)
+{
+    parseOptions(argc, argv, BASETYPE_MESSAGE);
+    std::cerr << "basetype start" << std::endl;
+    //std::ifstream ibam(opt::bamlst);
+    //std::vector<std::string> bams(std::istream_iterator<Line>{ibam},
+    //	                          std::istream_iterator<Line>{});
+    FastaReader fa;
+    fa.GetTargetBase(opt::region, opt::reference);
 }
 
 void runPopMatrix (int argc, char **argv)
@@ -157,12 +173,14 @@ void parseOptions(int argc, char **argv, const char* msg)
 	case 'v': opt::verbose = true; break;
 	case 'q': arg >> opt::mapq; break;
 	case 'l': arg >> opt::bamlst; break;
+	case 'r': arg >> opt::reference; break;
 	case 'p': arg >> opt::posfile; break;
+	case 'g': arg >> opt::region; break;
 	case 'o': arg >> opt::output; break;
 	default: die = true;
 	}
     }
-    if (die || help || (opt::bamlst.empty() && opt::posfile.empty())) {
+    if (die || help) {
 	std::cerr << msg;
 	if (die)
 	  exit(EXIT_FAILURE);

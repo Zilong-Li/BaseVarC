@@ -295,7 +295,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = foreign
-SUBDIRS = SeqLib/htslib SeqLib/src src
+SUBDIRS = SeqLib/htslib SeqLib/bwa SeqLib/src src
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 

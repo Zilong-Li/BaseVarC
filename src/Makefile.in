@@ -104,7 +104,8 @@ am_BaseVarC_OBJECTS = BaseVarC-BaseVarC.$(OBJEXT) \
 BaseVarC_OBJECTS = $(am_BaseVarC_OBJECTS)
 am__DEPENDENCIES_1 =
 BaseVarC_DEPENDENCIES = $(top_builddir)/SeqLib/src/libseqlib.a \
-	$(top_builddir)/SeqLib/htslib/libhts.a $(am__DEPENDENCIES_1)
+	$(top_builddir)/SeqLib/htslib/libhts.a \
+	$(top_builddir)/SeqLib/bwa/libbwa.a $(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -263,11 +264,13 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 BaseVarC_CPPFLAGS = \
 		-I$(top_srcdir)/SeqLib \
-		-I$(top_srcdir)/SeqLib/htslib 
+		-I$(top_srcdir)/SeqLib/htslib \
+		-I$(top_srcdir)/SeqLib/bwa 
 
 BaseVarC_LDADD = \
 		$(top_builddir)/SeqLib/src/libseqlib.a \
 		$(top_builddir)/SeqLib/htslib/libhts.a \
+		$(top_builddir)/SeqLib/bwa/libbwa.a \
 		$(LDFLAGS)
 
 BaseVarC_SOURCES = BaseVarC.cpp BamProcess.cpp

@@ -22,7 +22,7 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const std::vector
     uint32_t  i = 0, j = 0;
     r = rv[i];
     const std::string SKIP = "DPN";
-    AlleleInfo ale; // store allele info tempory
+    AlleleInfo ale; 
     for (auto const& pos: pv) {
 	/* select the first record covering this position */
 	if (pos < r.Position() + 1) { // make 1-based
@@ -60,7 +60,7 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const std::vector
 		continue;    // ignore N 
 	    } else {
 		GetAllele(r, pos, ale);
-		allele_m.insert({pos, ale});
+		allele_m.insert({pos, ale});     // key might change to 'chr:pos'
 	    }
 	    r = rv[i];     // all back to index i 
 	    j = i;
@@ -170,7 +170,8 @@ void BamProcess::GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, Allel
     std::strcpy(qualities, r.Qualities().c_str());   
     // assign allele info
     ale.base = base_m.at(seq[offset]);
-    ale.qual = qualities[offset];
+    // offset = 33 , so need to substract 33;
+    ale.qual = qualities[offset] - 33;
     ale.mapq = r.MapQuality();
     ale.rpr = offset + 1;
     if (r.ReverseFlag()) {
