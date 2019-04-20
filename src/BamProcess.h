@@ -51,9 +51,9 @@ class BamProcess: public SeqLib::BamReader
     BamProcess(){}
     ~BamProcess(){}
 
-    void FindSnpAtPos(const SeqLib::GenomicRegion& gr, const std::vector<int32_t>& pv);
+    void FindSnpAtPos(const std::string& rg, const std::vector<int32_t>& pv);
 
-    void FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVector& pv);
+    void FindSnpAtPos(const std::string& rg, const PosInfoVector& pv);
 
     void PrintOut () const;
 

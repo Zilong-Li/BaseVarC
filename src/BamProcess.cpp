@@ -1,9 +1,7 @@
 #include "BamProcess.h"
 
-void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const std::vector<int32_t>& pv)
+void BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>& pv)
 {
-    SetRegion(gr);
-    SeqLib::BamRecord r;
     // check if the BAM is sorted 
     std::string hh = Header().AsString(); //std::string(header()->text)
     bool sorted = hh.find("SO:coord") != std::string::npos;
@@ -12,6 +10,10 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const std::vector
     	std::cerr << "       Sorted BAMs are required." << std::endl;
     	exit(EXIT_FAILURE);
     }
+    SeqLib::GenomicRegion gr(rg, Header());
+    SetRegion(gr);
+    gr.Pad(1000);
+    SeqLib::BamRecord r;
     // filter reads here
     SeqLib::BamRecordVector rv;
     while (GetNextRecord(r)) {
@@ -68,10 +70,8 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const std::vector
     }
 }
 
-void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVector& pv)
+void BamProcess::FindSnpAtPos(const std::string& rg, const PosInfoVector& pv)
 {
-    SetRegion(gr);
-    SeqLib::BamRecord r;
     // check if the BAM is sorted 
     std::string hh = Header().AsString(); //std::string(header()->text)
     bool sorted = hh.find("SO:coord") != std::string::npos;
@@ -80,6 +80,10 @@ void BamProcess::FindSnpAtPos(const SeqLib::GenomicRegion& gr, const PosInfoVect
     	std::cerr << "       Sorted BAMs are required." << std::endl;
     	exit(EXIT_FAILURE);
     }
+    SeqLib::GenomicRegion gr(rg, Header());
+    SetRegion(gr);
+    gr.Pad(1000);
+    SeqLib::BamRecord r;
     // filter reads here
     SeqLib::BamRecordVector rv;
     while (GetNextRecord(r)) {

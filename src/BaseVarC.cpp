@@ -34,7 +34,6 @@ static const char* POPMATRIX_MESSAGE =
 
 void runBaseType(int argc, char **argv);
 void runPopMatrix(int argc, char **argv);
-void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv);
 void parseOptions(int argc, char **argv, const char* msg);
 
 namespace opt {
@@ -88,11 +87,13 @@ void runBaseType(int argc, char **argv)
 {
     parseOptions(argc, argv, BASETYPE_MESSAGE);
     std::cerr << "basetype start" << std::endl;
-    //std::ifstream ibam(opt::bamlst);
-    //std::vector<std::string> bams(std::istream_iterator<Line>{ibam},
-    //	                          std::istream_iterator<Line>{});
+    std::ifstream ibam(opt::bamlst);
+    std::vector<std::string> bams(std::istream_iterator<Line>{ibam},
+    	                          std::istream_iterator<Line>{});
     FastaReader fa;
     fa.GetTargetBase(opt::region, opt::reference);
+    const int32_t N = bams.size();
+    std::vector<PosAlleleMap> allele_mv;
 }
 
 void runPopMatrix (int argc, char **argv)
@@ -133,17 +134,11 @@ void runPopMatrix (int argc, char **argv)
     }
     std::cout << tmp.str() << std::endl;
     tmp.str("");
-
-    subPopMatrix(bams, pv);
-    std::cerr << "popmatrix done" << std::endl;
-}
-
-void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv)
-{
+    // ready for run
     const int32_t N = bams.size();
     std::string rg = pv.front() + pv.back();
 
-    uint32_t count = 0;
+    int32_t count = 0;
     for (int32_t i = 0; i < N; ++i) {
 	BamProcess reader;
 	if (!(++count % 1000)) std::cerr << "Processing the number " << count / 1000 << "k bam" << std::endl;
@@ -151,16 +146,13 @@ void subPopMatrix (const std::vector<std::string>& bams, const PosInfoVector& pv
 	    std::cerr << "ERROR: could not open file " << bams[i] << std::endl;
 	    exit(EXIT_FAILURE);
 	}
-	SeqLib::GenomicRegion gr(rg, reader.Header());
-	// bam is 0-based and rg pos is 1-based 
-	gr.Pad(1000);
-	reader.FindSnpAtPos(gr, pv);
+	reader.FindSnpAtPos(rg, pv);
 	reader.PrintOut();
 	if (!reader.Close()) {
 	    std::cerr << "Warning: could not close file " << bams[i] << std::endl;
 	}
     }
-    
+    std::cerr << "popmatrix done" << std::endl;
 }
 
 void parseOptions(int argc, char **argv, const char* msg)
@@ -180,6 +172,7 @@ void parseOptions(int argc, char **argv, const char* msg)
 	default: die = true;
 	}
     }
+    // todo : need more check
     if (die || help) {
 	std::cerr << msg;
 	if (die)
