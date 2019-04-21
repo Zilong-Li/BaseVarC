@@ -2,6 +2,7 @@
 #define __BASEVARC_FASTA_READER_H__
 
 #include "SeqLib/RefGenome.h"
+#include "BaseVarUtils.h"
 
 class FastaReader: public SeqLib::RefGenome
 {
@@ -16,19 +17,9 @@ class FastaReader: public SeqLib::RefGenome
 
 void FastaReader::GetTargetBase(std::string rg, const std::string& f)
 {
-    int32_t rg_s = 0, rg_e = 0;
     std::string chr;
-    size_t p;
-    if ((p = rg.find(":")) != std::string::npos) {
-	chr = rg.substr(0, p);
-	rg.erase(0, p + 1);
-    }
-    if ((p = rg.find("-")) != std::string::npos) {
-	rg_s = std::stoi(rg.substr(0,p)) - 1;      // make 0-based
-	rg.erase(0, p + 1);
-	rg_e = std::stoi(rg) - 1;
-    }
-	
+    int32_t rg_s, rg_e;
+    std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(rg);
     if (!LoadIndex(f)) {
 	std::cerr << "reference must be index with samtools faidx" << std::endl;
 	exit(EXIT_FAILURE);

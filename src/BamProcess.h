@@ -57,7 +57,7 @@ class BamProcess: public SeqLib::BamReader
 
     void PrintOut () const;
 
-    int32_t mapq = 10;
+    uint8_t mapq = 10;
     std::vector<char> snps;
     PosAlleleMap allele_m;
 

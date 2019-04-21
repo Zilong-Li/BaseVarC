@@ -92,8 +92,31 @@ void runBaseType(int argc, char **argv)
     	                          std::istream_iterator<Line>{});
     FastaReader fa;
     fa.GetTargetBase(opt::region, opt::reference);
-    const int32_t N = bams.size();
+    std::string chr;
+    int32_t rg_s, rg_e;
+    std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(opt::region);
+    std::vector<int32_t> pv;
+    uint32_t i;
+    for (i = 0; i < fa.seq.length(); i++) {
+	if (fa.seq[i] == 'N') continue;
+	pv.push_back(i + rg_s + 1);       // make 1-based
+    }
     std::vector<PosAlleleMap> allele_mv;
+    const uint32_t N = bams.size();
+    int count = 0;
+    for (i = 0; i < N; i++) {
+	BamProcess reader;
+	if (!(++count % 1000)) std::cerr << "Processing the number " << count / 1000 << "k bam" << std::endl;
+	if (!reader.Open(bams[i])) {
+	    std::cerr << "ERROR: could not open file " << bams[i] << std::endl;
+	    exit(EXIT_FAILURE);
+	}
+	reader.FindSnpAtPos(opt::region, pv);
+	allele_mv.push_back(reader.allele_m);
+	if (!reader.Close()) {
+	    std::cerr << "Warning: could not close file " << bams[i] << std::endl;
+	}
+    }
 }
 
 void runPopMatrix (int argc, char **argv)
@@ -135,11 +158,11 @@ void runPopMatrix (int argc, char **argv)
     std::cout << tmp.str() << std::endl;
     tmp.str("");
     // ready for run
-    const int32_t N = bams.size();
+    const uint32_t N = bams.size();
     std::string rg = pv.front() + pv.back();
 
-    int32_t count = 0;
-    for (int32_t i = 0; i < N; ++i) {
+    uint32_t count = 0;
+    for (uint32_t i = 0; i < N; i++) {
 	BamProcess reader;
 	if (!(++count % 1000)) std::cerr << "Processing the number " << count / 1000 << "k bam" << std::endl;
 	if (!reader.Open(bams[i])) {
