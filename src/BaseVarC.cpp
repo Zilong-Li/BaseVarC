@@ -2,7 +2,9 @@
 #include <iterator>
 #include <fstream>
 #include <iostream>
+#include <cstring>
 
+#include "htslib/bgzf.h"
 #include "FastaReader.h"
 #include "BamProcess.h"
 
@@ -46,17 +48,17 @@ namespace opt {
     static std::string output;
 }
 
-static const char* shortopts = "hv:q:l:r:p:g:o";
+static const char* shortopts = "hvl:r:p:g:o:q:";
 
 static const struct option longopts[] = {
   { "help",                    no_argument, NULL, 'h' },
   { "verbose",                 no_argument, NULL, 'v' },
-  { "mapq",                    required_argument, NULL, 'q' },
   { "bamlst",                  required_argument, NULL, 'l' },
   { "reference",               required_argument, NULL, 'r' },
   { "posfile",                 required_argument, NULL, 'p' },
   { "region",                  required_argument, NULL, 'g' },
   { "output",                  required_argument, NULL, 'o' },
+  { "mapq",                    required_argument, NULL, 'q' },
   { NULL, 0, NULL, 0 }
 };
 
@@ -117,6 +119,32 @@ void runBaseType(int argc, char **argv)
 	    std::cerr << "Warning: could not close file " << bams[i] << std::endl;
 	}
     }
+    std::stringstream ss;
+    std::vector<AlleleInfo> aiv;
+    for (auto const& p: pv) {
+    	for (auto& m: allele_mv) {
+    	    if (m.find(p) == m.end()) {
+    		continue;
+    	    } else {
+    		ss << m[p].base;
+		// skip N base
+		if (m[p].base != 4) aiv.push_back(m[p]);
+    	    }
+    	}
+    	ss << "\n";
+	// skip coverage==0
+	if (aiv.size() > 0) {
+	    // call BaseType
+	}
+    }
+    std::string out = ss.str();
+    BGZF* fp = bgzf_open(opt::output.c_str(), "w");
+    const char* cs = out.c_str();
+    if (bgzf_write(fp, cs, strlen(cs)) != strlen(cs)) {
+    	std::cerr << "failed to write" << std::endl;
+    	exit(EXIT_FAILURE);
+    }
+    if (bgzf_close(fp) < 0) std::cerr << "failed to close \n";
 }
 
 void runPopMatrix (int argc, char **argv)
@@ -135,30 +163,10 @@ void runPopMatrix (int argc, char **argv)
     for (PosInfo p; ipos >> p;) pv.push_back(p);
     pv.shrink_to_fit();        // request for the excess capacity to be released
 
-    std::string sep = "\t";
-    std::ostringstream tmp;
-    for (auto const& p: pv) {
-	tmp << p.chr << sep;
-    }
-    std::cout << tmp.str() << std::endl;
-    tmp.str("");
-    for (auto const& p: pv) {
-	tmp << p.pos << sep;
-    }
-    std::cout << tmp.str() << std::endl;
-    tmp.str("");
-    for (auto const& p: pv) {
-	tmp << p.ref << sep;
-    }
-    std::cout << tmp.str() << std::endl;
-    tmp.str("");
-    for (auto const& p: pv) {
-	tmp << p.alt << sep;
-    }
-    std::cout << tmp.str() << std::endl;
-    tmp.str("");
-    // ready for run
     const uint32_t N = bams.size();
+    const uint32_t M = pv.size();
+    std::cout << N << "\t" << M << std::endl;
+    // ready for run
     std::string rg = pv.front() + pv.back();
 
     uint32_t count = 0;

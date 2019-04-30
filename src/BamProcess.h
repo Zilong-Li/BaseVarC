@@ -37,7 +37,7 @@ typedef std::vector<PosInfo> PosInfoVector;
 
 struct AlleleInfo
 {
-    unsigned int base:  2;      // 0 : A, 1 : C, 2 : G, 3 : T
+    unsigned int base:  3;      // 0 : A, 1 : C, 2 : G, 3 : T
     unsigned int strand:1;      // 0 : -, 1 : +
     unsigned int qual:  8;
     unsigned int mapq:  8;
@@ -49,7 +49,10 @@ class BamProcess: public SeqLib::BamReader
 {
  public:
     BamProcess(){}
-    ~BamProcess(){}
+    ~BamProcess(){
+    // if we want to read the same bams many times , we need to reset m_bams, which is _BamMap type
+	m_bams.clear();
+    }
 
     void FindSnpAtPos(const std::string& rg, const std::vector<int32_t>& pv);
 
@@ -68,7 +71,7 @@ class BamProcess: public SeqLib::BamReader
 
     uint16_t GetOffset(const SeqLib::BamRecord& r, const uint32_t pos) const;
 
-    std::unordered_map<char, int> base_m{ {'A', 0},{'C', 1},{'G', 2},{'T', 3} };
+    std::unordered_map<char, int> base_m{ {'A', 0},{'C', 1},{'G', 2},{'T', 3},{'N', 4} };
 };
 
 

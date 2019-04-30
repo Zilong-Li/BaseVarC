@@ -11,7 +11,7 @@ extern "C" {
 
 #define MLN10TO10 -0.23025850929940458;
 
-typedef std::vector<int> IntV;
+typedef std::vector<int32_t> IntV;
 
 class BaseType
 {
@@ -20,18 +20,18 @@ class BaseType
     {
 	double qual_pvalue;
 	uint8_t BASE[] = {0, 1, 2, 3};
-	int num_base = 4;
-	uint32_t num_ind = bases.size();
-	uint32_t i = -1;
+	int nb = 4;
+	uint32_t nind = bases.size();
+	uint32_t i = 0;
 	for (auto const& b : bases) {
-	    ++i;
-	    for (int j = 0 ; j < num_base ; j++) {
+	    for (int j = 0 ; j < nb ; j++) {
 		if (b == BASE[j]) {
-		    ind_allele_likelihood[i * num_base + j] = 1.0 - exp(MLN10TO10 * quals[i])
+		    ind_allele_likelihood[i * nb + j] = 1.0 - exp(MLN10TO10 * quals[i])
 		} else {
-		    ind_allele_likelihood[i * num_base + j] = exp(MLN10TO10 * quals[i]) / 3.0
+		    ind_allele_likelihood[i * nb + j] = exp(MLN10TO10 * quals[i]) / 3.0
 		}
 	    } 
+	    ++i;
 	    depth[b] += 1;
 	}
 	
