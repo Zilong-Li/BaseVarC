@@ -58,8 +58,6 @@ class BamProcess: public SeqLib::BamReader
 
     void FindSnpAtPos(const std::string& rg, const PosInfoVector& pv);
 
-    void PrintOut () const;
-
     uint8_t mapq = 10;
     std::vector<char> snps;
     PosAlleleMap allele_m;

@@ -140,16 +140,6 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const PosInfoVector& pv)
     }
 }
 
-void BamProcess::PrintOut () const
-{
-    std::string sep = "\t";
-    std::ostringstream tmp;
-    for (auto const& s: snps) {
-	tmp << s << sep;
-    }
-    std::cout << tmp.str() << std::endl;
-}
-
 char BamProcess::GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const
 {
     uint32_t offset = GetOffset(r, s.pos);
