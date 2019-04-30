@@ -5,10 +5,9 @@
 #include <iostream>
 #include <string>
 #include <ctime>
-#include <cassert>
 
 #include "htslib/bgzf.h"
-#include "FastaReader.h"
+#include "RefReader.h"
 #include "BamProcess.h"
 
 static const char* BASEVARC_USAGE_MESSAGE = 
@@ -192,7 +191,7 @@ void runBaseType(int argc, char **argv)
     std::ifstream ibam(opt::flist);
     std::vector<std::string> bams(std::istream_iterator<Line>{ibam},
     	                          std::istream_iterator<Line>{});
-    FastaReader fa;
+    RefReader fa;
     fa.GetTargetBase(opt::region, opt::reference);
     std::string chr;
     int32_t rg_s, rg_e;
