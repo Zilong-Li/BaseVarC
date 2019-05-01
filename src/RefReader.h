@@ -21,14 +21,13 @@ void RefReader::GetTargetBase(std::string rg, const std::string& f)
     int32_t rg_s, rg_e;
     std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(rg);
     if (!LoadIndex(f)) {
-	std::cerr << "reference must be index with samtools faidx" << std::endl;
-	exit(EXIT_FAILURE);
+        std::cerr << "reference must be index with samtools faidx" << std::endl;
+        exit(EXIT_FAILURE);
     }
     seq = QueryRegion(chr, rg_s, rg_e);
     for (auto & i: seq) {
-	if (i >= 65 && i <= 90)
-	    continue;
-	i = i ^ 0x20;
+        if (i >= 65 && i <= 90) continue;
+        i = i ^ 0x20;
     }
 }
 

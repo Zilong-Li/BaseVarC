@@ -18,23 +18,22 @@ class BaseType
  public:
     BaseType(const char& rb, const IntV& bs, const IntV& qs) : ref_base(rb), bases(bs), quals(qs)
     {
-	double qual_pvalue;
-	uint8_t BASE[] = {0, 1, 2, 3};
-	int nb = 4;
-	uint32_t nind = bases.size();
-	uint32_t i = 0;
-	for (auto const& b : bases) {
-	    for (int j = 0 ; j < nb ; j++) {
-		if (b == BASE[j]) {
-		    ind_allele_likelihood[i * nb + j] = 1.0 - exp(MLN10TO10 * quals[i])
-		} else {
-		    ind_allele_likelihood[i * nb + j] = exp(MLN10TO10 * quals[i]) / 3.0
-		}
-	    } 
-	    ++i;
-	    depth[b] += 1;
-	}
-	
+        double qual_pvalue;
+        uint8_t BASE[] = {0, 1, 2, 3};
+        int nb = 4;
+        uint32_t nind = bases.size();
+        uint32_t i = 0;
+        for (auto const& b : bases) {
+            for (int j = 0 ; j < nb ; j++) {
+                if (b == BASE[j]) {
+                    ind_allele_likelihood[i * nb + j] = 1.0 - exp(MLN10TO10 * quals[i])
+                } else {
+                    ind_allele_likelihood[i * nb + j] = exp(MLN10TO10 * quals[i]) / 3.0
+                }
+            }
+            ++i;
+            depth[b] += 1;
+        }
     }
     ~BaseType(){}
     void lrt();
