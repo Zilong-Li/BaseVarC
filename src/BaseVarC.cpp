@@ -24,7 +24,6 @@ static const char* BASETYPE_MESSAGE =
 "Program: BaseVarC basetype\n"
 "Contact: Zilong Li [lizilong@bgi.com]\n"
 "Usage  : BaseVarC basetype [options]\n\n";
-"Commands:\n"
 
 static const char* POPMATRIX_MESSAGE = 
 "Program: BaseVarC popmatrix\n"
