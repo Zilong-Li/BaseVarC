@@ -9,7 +9,7 @@ struct Line
     std::string data;
     operator std::string const&() const {return data;}
     friend std::istream& operator>>(std::istream& is, Line& line) {
-	return std::getline(is, line.data);
+        return std::getline(is, line.data);
     }
 };
 
@@ -21,16 +21,16 @@ struct PosInfo
     char alt;
     /* provide an overload of operator + to return samtools-like region */
     std::string operator+(const PosInfo& snp) const {
-	assert(this->chr == snp.chr);
-	const char *colon = ":";
-	const char *hyphen = "-";
-	auto rg_s = BaseVar::tostring(this->pos);
-	auto rg_e = BaseVar::tostring(snp.pos);
-	return snp.chr + colon + rg_s + hyphen + rg_e;
+        assert(this->chr == snp.chr);
+        const char *colon = ":";
+        const char *hyphen = "-";
+        auto rg_s = BaseVar::tostring(this->pos);
+        auto rg_e = BaseVar::tostring(snp.pos);
+        return snp.chr + colon + rg_s + hyphen + rg_e;
     }
     friend std::istream& operator>>(std::istream& is, PosInfo& info) {
-	is >> std::ws >> info.chr >> info.pos >> info.ref >> info.alt;
-	return is;
+        is >> std::ws >> info.chr >> info.pos >> info.ref >> info.alt;
+        return is;
     }
 };
 typedef std::vector<PosInfo> PosInfoVector;
@@ -50,8 +50,8 @@ class BamProcess: public SeqLib::BamReader
  public:
     BamProcess(){}
     ~BamProcess(){
-    // if we want to read the same bams many times , we need to reset m_bams, which is _BamMap type
-	m_bams.clear();
+        // if we want to read the same bams many times , we need to reset m_bams, which is _BamMap type
+        m_bams.clear();
     }
 
     void FindSnpAtPos(const std::string& rg, const std::vector<int32_t>& pv);
