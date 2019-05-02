@@ -64,15 +64,15 @@ namespace opt {
 static const char* shortopts = "hvl:r:p:g:o:q:";
 
 static const struct option longopts[] = {
-  { "help",                    no_argument, NULL, 'h' },
-  { "verbose",                 no_argument, NULL, 'v' },
-  { "input",                   required_argument, NULL, 'l' },
-  { "reference",               required_argument, NULL, 'r' },
-  { "posfile",                 required_argument, NULL, 'p' },
-  { "region",                  required_argument, NULL, 'g' },
-  { "output",                  required_argument, NULL, 'o' },
-  { "mapq",                    required_argument, NULL, 'q' },
-  { NULL, 0, NULL, 0 }
+  { "help",                    no_argument, null, 'h' },
+  { "verbose",                 no_argument, null, 'v' },
+  { "input",                   required_argument, null, 'l' },
+  { "reference",               required_argument, null, 'r' },
+  { "posfile",                 required_argument, null, 'p' },
+  { "region",                  required_argument, null, 'g' },
+  { "output",                  required_argument, null, 'o' },
+  { "mapq",                    required_argument, null, 'q' },
+  { null, 0, null, 0 }
 };
 
 int main(int argc, char** argv)
@@ -88,7 +88,7 @@ int main(int argc, char** argv)
         } else if (command == "basetype") {
             runBaseType(argc - 1, argv + 1);
         } else if (command == "popmatrix") {
-            runPopMatrix(argc - 1, argv + 1);
+            runpopmatrix(argc - 1, argv + 1);
         } else if (command == "merge") {
             runMerge(argc - 1, argv + 1);
         } else {
@@ -162,8 +162,11 @@ void runMerge(int argc, char **argv)
         std::cerr << "fail to write - exit" << std::endl;
         exit(EXIT_FAILURE);
     }
+    // fast concatenation consider using rope data structure
+    // @see https://brianbondy.com/blog/tagged/data-structure
     for (i = 0; i < n; ++i){
         ss = "";
+        ss.reserve(mt+1);
         for (k = 0; k < nm; ++k) {
             ss += D[k][i];
         }
