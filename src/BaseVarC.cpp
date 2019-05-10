@@ -23,7 +23,15 @@ static const char* BASEVARC_USAGE_MESSAGE =
 static const char* BASETYPE_MESSAGE = 
 "Program: BaseVarC basetype\n"
 "Contact: Zilong Li [lizilong@bgi.com]\n"
-"Usage  : BaseVarC basetype [options]\n\n";
+"Usage  : BaseVarC basetype [options]\n\n"
+"Commands:\n"
+"  --input,      -l        BAM/CRAM files list, one file per row.\n"
+"  --output,     -o        Output path(default stdout)\n"
+"  --reference,  -r        Reference file\n"
+"  --region,     -g        Samtools-like region\n"
+"  --mapq,       -q <INT>  Mapping quality >= INT. [10]\n"
+"  --verbose,    -v        Set verbose output\n"
+"\nReport bugs to lizilong@bgi.com \n\n";
 
 static const char* POPMATRIX_MESSAGE = 
 "Program: BaseVarC popmatrix\n"
@@ -64,15 +72,15 @@ namespace opt {
 static const char* shortopts = "hvl:r:p:g:o:q:";
 
 static const struct option longopts[] = {
-  { "help",                    no_argument, null, 'h' },
-  { "verbose",                 no_argument, null, 'v' },
-  { "input",                   required_argument, null, 'l' },
-  { "reference",               required_argument, null, 'r' },
-  { "posfile",                 required_argument, null, 'p' },
-  { "region",                  required_argument, null, 'g' },
-  { "output",                  required_argument, null, 'o' },
-  { "mapq",                    required_argument, null, 'q' },
-  { null, 0, null, 0 }
+  { "help",                    no_argument, NULL, 'h' },
+  { "verbose",                 no_argument, NULL, 'v' },
+  { "input",                   required_argument, NULL, 'l' },
+  { "reference",               required_argument, NULL, 'r' },
+  { "posfile",                 required_argument, NULL, 'p' },
+  { "region",                  required_argument, NULL, 'g' },
+  { "output",                  required_argument, NULL, 'o' },
+  { "mapq",                    required_argument, NULL, 'q' },
+  { NULL, 0, NULL, 0 }
 };
 
 int main(int argc, char** argv)
@@ -88,7 +96,7 @@ int main(int argc, char** argv)
         } else if (command == "basetype") {
             runBaseType(argc - 1, argv + 1);
         } else if (command == "popmatrix") {
-            runpopmatrix(argc - 1, argv + 1);
+            runPopMatrix(argc - 1, argv + 1);
         } else if (command == "merge") {
             runMerge(argc - 1, argv + 1);
         } else {
@@ -196,15 +204,14 @@ void runBaseType(int argc, char **argv)
     int32_t rg_s, rg_e;
     std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(opt::region);
     std::vector<int32_t> pv;
-    uint32_t i;
-    for (i = 0; i < fa.seq.length(); i++) {
+    for (int i = 0; i < fa.seq.length(); i++) {
         if (fa.seq[i] == 'N') continue;
-        pv.push_back(i + rg_s + 1);       // make 1-based
+        pv.push_back(i + rg_s);       // 1-based
     }
     std::vector<PosAlleleMap> allele_mv;
     const uint32_t N = bams.size();
     int count = 0;
-    for (i = 0; i < N; i++) {
+    for (int i = 0; i < N; i++) {
         BamProcess reader;
         if (!(++count % 1000)) std::cerr << "Processing the number " << count / 1000 << "k bam" << std::endl;
         if (!reader.Open(bams[i])) {
@@ -218,10 +225,10 @@ void runBaseType(int argc, char **argv)
         }
     }
     std::stringstream ss;
-    std::vector<AlleleInfo> aiv;
     for (auto const& p: pv) {
+        std::vector<AlleleInfo> aiv;
     	for (auto& m: allele_mv) {
-    	    if (m.find(p) == m.end()) {
+    	    if (m.count(p) == 0) {
                 continue;
     	    } else {
                 ss << m[p].base;
@@ -231,8 +238,10 @@ void runBaseType(int argc, char **argv)
     	}
     	ss << "\n";
         // skip coverage==0
-        if (aiv.size() > 0) {
+        int j = aiv.size();
+        if (j > 0) {
             // here call BaseType
+            std::cout << p << "\t" << j << std::endl;
         }
     }
     std::string out = ss.str();
@@ -242,6 +251,7 @@ void runBaseType(int argc, char **argv)
     	exit(EXIT_FAILURE);
     }
     if (bgzf_close(fp) < 0) std::cerr << "failed to close \n";
+    std::cerr << "basetype done" << std::endl;
 }
 
 void runPopMatrix (int argc, char **argv)
@@ -261,8 +271,8 @@ void runPopMatrix (int argc, char **argv)
     for (PosInfo p; ipos >> p;) pv.push_back(p);
     pv.shrink_to_fit();        // request for the excess capacity to be released
 
-    const uint32_t N = bams.size();
-    const uint32_t M = pv.size();
+    const long int N = bams.size();
+    const long int M = pv.size();
     std::string out = std::to_string(N) + "\t" + std::to_string(M) + "\n";
     BGZF* fp = bgzf_open(opt::output.c_str(), "w");
     if (bgzf_write(fp, out.c_str(), out.length()) != out.length()) {
@@ -271,8 +281,8 @@ void runPopMatrix (int argc, char **argv)
     }
     // ready for run
     std::string rg = pv.front() + pv.back();
-    uint32_t count = 0;
-    for (uint32_t i = 0; i < N; i++) {
+    long int count = 0;
+    for (int i = 0; i < N; i++) {
         BamProcess reader;
         if (!(++count % 1000)) std::cerr << "Processing the number " << count / 1000 << "k bam" << std::endl;
         if (!reader.Open(bams[i])) {
@@ -315,7 +325,7 @@ void parseOptions(int argc, char **argv, const char* msg)
         }
     }
     // todo : need more check
-    if (die || help) {
+    if (die || help || (opt::input.empty() && opt::output.empty())) {
         std::cerr << msg;
         if (die) exit(EXIT_FAILURE);
         else exit(EXIT_SUCCESS);

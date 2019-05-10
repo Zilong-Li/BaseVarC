@@ -67,7 +67,7 @@ class BamProcess: public SeqLib::BamReader
 
     void GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, AlleleInfo& ale) const;
 
-    uint16_t GetOffset(const SeqLib::BamRecord& r, const uint32_t pos) const;
+    int GetOffset(const SeqLib::BamRecord& r, const uint32_t pos) const;
 
     std::unordered_map<char, int> base_m{ {'A', 0},{'C', 1},{'G', 2},{'T', 3},{'N', 4} };
 };
