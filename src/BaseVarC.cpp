@@ -17,7 +17,7 @@ static const char* BASEVARC_USAGE_MESSAGE =
 "Commands:\n"
 "           basetype       Variants Caller\n"
 "           popmatrix      Create population matrix at specific positions.\n" 
-"           merge          Merge popmatrix.\n" 
+"           concat          Concat popmatrix.\n" 
 "\nReport bugs to lizilong@bgi.com \n\n";
 
 static const char* BASETYPE_MESSAGE = 
@@ -45,18 +45,18 @@ static const char* POPMATRIX_MESSAGE =
 "  --verbose,    -v        Set verbose output\n"
 "\nReport bugs to lizilong@bgi.com \n\n";
 
-static const char* MERGE_MESSAGE =
+static const char* CONCAT_MESSAGE =
 "Program: BaseVarC popmatrix\n"
 "Contact: Zilong Li [lizilong@bgi.com]\n"
-"Usage  : BaseVarC merge [options]\n\n"
+"Usage  : BaseVarC concat [options]\n\n"
 "Commands:\n"
-"  --input,      -l       list of matrix files for merge, one file per row.\n"
+"  --input,      -l       list of matrix files for concat, one file per row.\n"
 "  --output,     -o       output path (will be added suffix .gz at the end)\n"
 "\nReport bugs to lizilong@bgi.com \n\n";
 
 void runBaseType(int argc, char **argv);
 void runPopMatrix(int argc, char **argv);
-void runMerge(int argc, char **argv);
+void runConcat(int argc, char **argv);
 void parseOptions(int argc, char **argv, const char* msg);
 
 namespace opt {
@@ -97,8 +97,8 @@ int main(int argc, char** argv)
             runBaseType(argc - 1, argv + 1);
         } else if (command == "popmatrix") {
             runPopMatrix(argc - 1, argv + 1);
-        } else if (command == "merge") {
-            runMerge(argc - 1, argv + 1);
+        } else if (command == "concat") {
+            runConcat(argc - 1, argv + 1);
         } else {
             std::cerr << BASEVARC_USAGE_MESSAGE;
             return 0;
@@ -108,9 +108,9 @@ int main(int argc, char** argv)
     return 0;
 }
 
-void runMerge(int argc, char **argv)
+void runConcat(int argc, char **argv)
 {
-    parseOptions(argc, argv, MERGE_MESSAGE);
+    parseOptions(argc, argv, CONCAT_MESSAGE);
     std::string fm = opt::input;
     std::string fo = opt::output;
     clock_t ctb = clock();
@@ -188,7 +188,7 @@ void runMerge(int argc, char **argv)
     clock_t cte = clock();
     double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
     std::cout << "elapsed secs : " << elapsed_secs << std::endl;
-    std::cout << "merge done" << std::endl;
+    std::cout << "concat done" << std::endl;
 }
 
 void runBaseType(int argc, char **argv)
