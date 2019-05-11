@@ -238,10 +238,9 @@ void runBaseType(int argc, char **argv)
     	}
     	ss << "\n";
         // skip coverage==0
-        int j = aiv.size();
-        if (j > 0) {
+        if (aiv.size() > 0) {
             // here call BaseType
-            std::cout << p << "\t" << j << std::endl;
+            std::cout << p << "\t" << aiv.size() << std::endl;
         }
     }
     std::string out = ss.str();

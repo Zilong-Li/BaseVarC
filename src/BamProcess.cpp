@@ -21,7 +21,7 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
         rv.push_back(r);
     }
     bool flag = false;
-    uint32_t  i = 0, j = 0;
+    uint32_t i = 0, j = 0;
     r = rv[i];
     const std::string SKIP = "DPN";
     AlleleInfo ale;
@@ -53,13 +53,14 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
                 }
                 if (fail && j < rv.size() - 1) {
                     r = rv[++j];
+                    if (pos < r.Position() + 1) break;
                 } else {
                     break;
                 }
             }
             // now we pick this read.
             if (pos < r.Position() + 1 || flag) {
-                continue;    // ignore N
+                  //continue is a bug; should do nothing
             } else {
                 GetAllele(r, pos, ale);
                 allele_m.insert({pos, ale});     // key might change to 'chr:pos'
@@ -91,7 +92,7 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const PosInfoVector& pv)
         rv.push_back(r);
     }
     bool flag = false;
-    long int  i = 0, j = 0;
+    uint32_t  i = 0, j = 0;
     r = rv[i];
     snps.reserve(pv.size());       // best practice;
     const std::string SKIP = "DPN";
@@ -123,6 +124,7 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const PosInfoVector& pv)
                 }
                 if (fail && j < rv.size() - 1) {
                     r = rv[++j];
+                    if (pos < r.Position() + 1) break;
                 } else {
                     break;
                 }
@@ -158,8 +160,8 @@ void BamProcess::GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, Allel
 {
     int offset = GetOffset(r, pos);
     char seq[r.Sequence().length() + 1];
-    std::strcpy(seq, r.Sequence().c_str());    // must copy r.r.Sequence();
     char qualities[r.Qualities().length() + 1];
+    std::strcpy(seq, r.Sequence().c_str());    // must copy r.r.Sequence();
     std::strcpy(qualities, r.Qualities().c_str());
     // assign allele info
     ale.base = base_m.at(seq[offset]);
@@ -177,6 +179,7 @@ void BamProcess::GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, Allel
 int BamProcess::GetOffset(const SeqLib::BamRecord& r, const uint32_t pos) const
 {
     SeqLib::Cigar c = r.GetCigar();
+    // offset is the 0-based
     int offset = pos - (r.Position() + 1);
     uint32_t track = r.Position();
     for (auto const& cf: c) {
