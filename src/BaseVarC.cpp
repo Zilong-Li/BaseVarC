@@ -114,12 +114,11 @@ void runConcat(int argc, char **argv)
     std::string fm = opt::input;
     std::string fo = opt::output;
     clock_t ctb = clock();
-    std::vector<std::string> fm_v;
-    std::string path;
     std::ifstream ifm(fm);
-    while (ifm >> path) fm_v.push_back(path);
-    long int i, k, m, count, n = 0, mt = 0;
-    long int nm = fm_v.size();
+    std::vector<std::string> fm_v(std::istream_iterator<BaseVar::Line>{ifm},
+    	                          std::istream_iterator<BaseVar::Line>{});
+    int32_t i, k, m, count, n = 0, mt = 0;
+    int32_t nm = fm_v.size();
     BGZF* fp = NULL;
     kstring_t ks;
     ks.s = 0; ks.l = 0; ks.m = 0;
@@ -196,22 +195,22 @@ void runBaseType(int argc, char **argv)
     parseOptions(argc, argv, BASETYPE_MESSAGE);
     std::cerr << "basetype start" << std::endl;
     std::ifstream ibam(opt::input);
-    std::vector<std::string> bams(std::istream_iterator<Line>{ibam},
-    	                          std::istream_iterator<Line>{});
+    std::vector<std::string> bams(std::istream_iterator<BaseVar::Line>{ibam},
+    	                          std::istream_iterator<BaseVar::Line>{});
     RefReader fa;
     fa.GetTargetBase(opt::region, opt::reference);
     std::string chr;
     int32_t rg_s, rg_e;
     std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(opt::region);
     std::vector<int32_t> pv;
-    for (int i = 0; i < fa.seq.length(); i++) {
+    for (int32_t i = 0; i < fa.seq.length(); i++) {
         if (fa.seq[i] == 'N') continue;
         pv.push_back(i + rg_s);       // 1-based
     }
     std::vector<PosAlleleMap> allele_mv;
-    const uint32_t N = bams.size();
-    int count = 0;
-    for (int i = 0; i < N; i++) {
+    const int32_t N = bams.size();
+    int32_t count = 0;
+    for (int32_t i = 0; i < N; i++) {
         BamProcess reader;
         if (!(++count % 1000)) std::cerr << "Processing the number " << count / 1000 << "k bam" << std::endl;
         if (!reader.Open(bams[i])) {
@@ -226,7 +225,7 @@ void runBaseType(int argc, char **argv)
     }
     std::stringstream ss;
     for (auto const& p: pv) {
-        std::vector<AlleleInfo> aiv;
+        AlleleInfoVector aiv;
     	for (auto& m: allele_mv) {
     	    if (m.count(p) == 0) {
                 continue;
@@ -264,14 +263,14 @@ void runPopMatrix (int argc, char **argv)
         std::cerr << "bamlist or posifle can not be opend" << std::endl;
         exit(EXIT_FAILURE);
     }
-    std::vector<std::string> bams(std::istream_iterator<Line>{ibam},
-    	                          std::istream_iterator<Line>{});
+    std::vector<std::string> bams(std::istream_iterator<BaseVar::Line>{ibam},
+    	                          std::istream_iterator<BaseVar::Line>{});
     PosInfoVector pv;
     for (PosInfo p; ipos >> p;) pv.push_back(p);
     pv.shrink_to_fit();        // request for the excess capacity to be released
 
-    const long int N = bams.size();
-    const long int M = pv.size();
+    const int32_t N = bams.size();
+    const int32_t M = pv.size();
     std::string out = std::to_string(N) + "\t" + std::to_string(M) + "\n";
     BGZF* fp = bgzf_open(opt::output.c_str(), "w");
     if (bgzf_write(fp, out.c_str(), out.length()) != out.length()) {
@@ -280,8 +279,8 @@ void runPopMatrix (int argc, char **argv)
     }
     // ready for run
     std::string rg = pv.front() + pv.back();
-    long int count = 0;
-    for (int i = 0; i < N; i++) {
+    int32_t count = 0;
+    for (int32_t i = 0; i < N; i++) {
         BamProcess reader;
         if (!(++count % 1000)) std::cerr << "Processing the number " << count / 1000 << "k bam" << std::endl;
         if (!reader.Open(bams[i])) {

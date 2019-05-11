@@ -16,7 +16,7 @@ typedef std::vector<int32_t> IntV;
 class BaseType
 {
  public:
-    BaseType(const char& rb, const IntV& bs, const IntV& qs) : ref_base(rb), bases(bs), quals(qs)
+    BaseType(const char& ref, const ) : ref_base(ref), bases(bs), quals(qs)
     {
         double qual_pvalue;
         uint8_t BASE[] = {0, 1, 2, 3};
@@ -44,6 +44,7 @@ class BaseType
     void SetAlleleFreq();
     void Update_f();
     char ref_base;
+    double maf;
     IntV bases;
     IntV quals;
     std::unordered_map<int, int> depth{ {0, 0},{1, 0},{2, 0},{3, 0}};

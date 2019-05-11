@@ -4,15 +4,6 @@
 #include "SeqLib/BamReader.h"
 #include "BaseVarUtils.h"
 
-struct Line
-{
-    std::string data;
-    operator std::string const&() const {return data;}
-    friend std::istream& operator>>(std::istream& is, Line& line) {
-        return std::getline(is, line.data);
-    }
-};
-
 struct PosInfo
 {
     std::string chr;
@@ -43,6 +34,7 @@ struct AlleleInfo
     unsigned int mapq:  8;
     unsigned int rpr:   8;
 };
+typedef std::vector<AlleleInfo> AlleleInfoVector;
 typedef std::unordered_map<uint32_t, AlleleInfo> PosAlleleMap;
 
 class BamProcess: public SeqLib::BamReader

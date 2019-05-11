@@ -7,6 +7,14 @@
 
 namespace BaseVar
 {
+struct Line
+{
+    std::string data;
+    operator std::string const&() const {return data;}
+    friend std::istream& operator>>(std::istream& is, Line& line) {
+        return std::getline(is, line.data);
+    }
+};
 
 template<typename T>
 inline std::string tostring(T d) {
