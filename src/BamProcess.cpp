@@ -124,7 +124,7 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const PosInfoVector& pv)
                 }
                 if (fail && j < rv.size() - 1) {
                     r = rv[++j];
-                    if (pos < r.Position() + 1) break;
+                    if (s.pos < r.Position() + 1) break;
                 } else {
                     break;
                 }
