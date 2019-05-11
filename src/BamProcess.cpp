@@ -60,7 +60,7 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
             }
             // now we pick this read.
             if (pos < r.Position() + 1 || flag) {
-                  //continue is a bug; should do nothing
+                ;    //continue is a bug; should do nothing
             } else {
                 GetAllele(r, pos, ale);
                 allele_m.insert({pos, ale});     // key might change to 'chr:pos'
