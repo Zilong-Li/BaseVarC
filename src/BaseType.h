@@ -1,7 +1,7 @@
 #ifndef __BASEVARC_BASE_TYPE_H__
 #define __BASEVARC_BASW_TYPE_H__
 
-#include "BaseVarUtils.h"
+#include "BamProcess.h"
 
 extern "C" {
 #include "em.h"
@@ -9,14 +9,14 @@ extern "C" {
 #include "kfunc.h""
 }
 
-#define MLN10TO10 -0.23025850929940458;
+#define MLN10TO10 -0.23025850929940458
 
 typedef std::vector<int32_t> IntV;
 
 class BaseType
 {
  public:
-    BaseType(const char& ref, const ) : ref_base(ref), bases(bs), quals(qs)
+    BaseType(const char& ref, const AlleleInfoVector& aiv) : ref_base(ref), allele_v(aiv)
     {
         double qual_pvalue;
         uint8_t BASE[] = {0, 1, 2, 3};
@@ -44,7 +44,8 @@ class BaseType
     void SetAlleleFreq();
     void Update_f();
     char ref_base;
-    double maf;
+    AlleleInfoVector allele_v;
+    double af_t;
     IntV bases;
     IntV quals;
     std::unordered_map<int, int> depth{ {0, 0},{1, 0},{2, 0},{3, 0}};

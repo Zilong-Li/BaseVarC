@@ -207,9 +207,10 @@ void runBaseType(int argc, char **argv)
         if (fa.seq[i] == 'N') continue;
         pv.push_back(i + rg_s);       // 1-based
     }
-    std::vector<PosAlleleMap> allele_mv;
-    const int32_t N = bams.size();
     int32_t count = 0;
+    const int32_t N = bams.size();
+    std::vector<PosAlleleMap> allele_mv;
+    std::unordered_map<int32_t, std::string> sm_m;
     for (int32_t i = 0; i < N; i++) {
         BamProcess reader;
         if (!(++count % 1000)) std::cerr << "Processing the number " << count / 1000 << "k bam" << std::endl;
@@ -217,29 +218,32 @@ void runBaseType(int argc, char **argv)
             std::cerr << "ERROR: could not open file " << bams[i] << std::endl;
             exit(EXIT_FAILURE);
         }
+        reader.sid = i;
         reader.FindSnpAtPos(opt::region, pv);
         allele_mv.push_back(reader.allele_m);
+        sm_m.insert({reader.sid, reader.sm});
         if (!reader.Close()) {
             std::cerr << "Warning: could not close file " << bams[i] << std::endl;
         }
     }
     std::stringstream ss;
     for (auto const& p: pv) {
+        // FIXME: 这里需要对应样本ID信息
         AlleleInfoVector aiv;
-    	for (auto& m: allele_mv) {
+    	for (auto const& m: allele_mv) {
     	    if (m.count(p) == 0) {
                 continue;
     	    } else {
-                ss << m[p].base;
+                ss << m.at(p).base;
                 // skip N base
-                if (m[p].base != 4) aiv.push_back(m[p]);
+                if (m.at(p).base != 4) aiv.push_back(m.at(p));
     	    }
     	}
     	ss << "\n";
         // skip coverage==0
         if (aiv.size() > 0) {
             // here call BaseType
-            std::cout << p << "\t" << aiv.size() << std::endl;
+            std::cout << p << "\t" << aiv[0].sid << std::endl;
         }
     }
     std::string out = ss.str();

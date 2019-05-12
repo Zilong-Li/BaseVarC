@@ -10,6 +10,15 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
     	std::cerr << "       Sorted BAMs are required." << std::endl;
     	exit(EXIT_FAILURE);
     }
+    // find sm:samplename
+    size_t p;
+    if ((p = hh.find("SM:")) != std::string::npos) {
+        hh.erase(0, p+3);
+        if ((p = hh.find("\t")) != std::string::npos) sm = hh.substr(0, p);
+    } else {
+        std::cerr << "ERROR: No SM tag can be found. Please make sure there is SM tag in the bam header" << std::endl;
+    	exit(EXIT_FAILURE);
+    }
     SeqLib::GenomicRegion gr(rg, Header());
     SetRegion(gr);
     gr.Pad(1000);
@@ -164,6 +173,7 @@ void BamProcess::GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, Allel
     std::strcpy(seq, r.Sequence().c_str());    // must copy r.r.Sequence();
     std::strcpy(qualities, r.Qualities().c_str());
     // assign allele info
+    ale.sid = sid;
     ale.base = base_m.at(seq[offset]);
     // offset = 33 , so need to substract 33;
     ale.qual = qualities[offset] - 33;
