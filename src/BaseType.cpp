@@ -4,6 +4,7 @@ BaseType::BaseType(BaseV base, BaseV qual, int ref, double minaf) : bases(base),
 {
     nind = bases.size();
     var_qual = 0;
+    init_allele_freq = new double[NTYPE]; // @WATCHOUT
     ind_allele_likelihood = new double[nind * NTYPE]; // @WATCHOUT
     for (int32_t i = 0; i < nind; ++i) {
         for (int j = 0; j < NTYPE; ++j) {
@@ -20,7 +21,8 @@ BaseType::BaseType(BaseV base, BaseV qual, int ref, double minaf) : bases(base),
     }
 }
 
-void BaseType::SetAlleleFreq(const BaseV& bases) {
+void BaseType::SetAlleleFreq(const BaseV& bases)
+{
     double depth_sum = 0;
     for (auto const& b : bases) {
         depth_sum += depth[b];
@@ -35,7 +37,8 @@ void BaseType::SetAlleleFreq(const BaseV& bases) {
     }
 }
 
-void BaseType::UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int32_t k) {
+void BaseType::UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int32_t k)
+{
     // REMINDME: consider comb_v.reserve
     combs(bases, bc, k);
     double *marginal_likelihood = new double[nind](); // @WATCHOUT
@@ -51,7 +54,7 @@ void BaseType::UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int3
         SetAlleleFreq(b);
         freq_sum = 0;
         for (int i = 0; i < NTYPE; ++i) freq_sum += init_allele_freq[i];
-        if (freq_sum == 0) continue;
+        if (freq_sum == 0) continue;  // skip coverage = 0, this may be redundant;
         // run EM
         EM(init_allele_freq, ind_allele_likelihood, marginal_likelihood, expect_allele_prob, nind, NTYPE, iter_num, epsilon);
         likelihood_sum = 0;
@@ -70,15 +73,23 @@ void BaseType::UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int3
     delete []expect_allele_prob;
 }
 
-void BaseType::LRT(){
+void BaseType::LRT()
+{
     if (depth_total == 0) return;
-    if (nind == 0) return;
+    bases.clear();
+    for (auto const& b : BASE) {
+        // filter bases by count freqence >= min_af
+        if (depth[b]/depth_total >= min_af) {
+            bases.push_back(b);
+        }
+    }
+    if (bases.size() == 0) return;
     CombV bc;
     FreqV bp;
     ProbV lr_null;
     ProbV lrt_chi;
     ProbV base_frq;
-    UpdateF(bases, bc, lr_null, bp, nind);
+    UpdateF(bases, bc, lr_null, bp, bases.size());
     base_frq = bp[0];
     auto lr_alt_t = lr_null[0];
     double chi_sqrt_t = 0;

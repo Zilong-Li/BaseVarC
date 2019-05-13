@@ -62,6 +62,7 @@ class BaseType
     BaseType(BaseV base, BaseV qual, int ref, double minaf);
     ~BaseType() {
         delete []ind_allele_likelihood;
+        delete []init_allele_freq;
     }
     void LRT();
     double var_qual;
@@ -76,9 +77,9 @@ class BaseType
     const double min_af;
     double depth_total = 0;
     int32_t nind;
-    DepM depth{ {0, 0},{1, 0},{2, 0},{3, 0}};
+    DepM depth{ {0, 0},{1, 0},{2, 0},{3, 0} };
     double *ind_allele_likelihood;
-    double init_allele_freq[NTYPE];
+    double *init_allele_freq;
 
     void SetAlleleFreq(const BaseV& bases);
     void UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int32_t k);
