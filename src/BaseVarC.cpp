@@ -11,7 +11,7 @@
 #include "BamProcess.h"
 
 static const char* BASEVARC_USAGE_MESSAGE = 
-"Program: BaseVarC\n"
+"Program: BaseVarC -- A c version of BaseVar\n"
 "Contact: Zilong Li [lizilong@bgi.com]\n"
 "Usage  : BaseVarC <command> [options]\n\n"
 "Commands:\n"

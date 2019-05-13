@@ -9,4 +9,4 @@ BaseVarC_LDADD = \
 		$(top_builddir)/SeqLib/htslib/libhts.a \
 		$(LDFLAGS)
 
-BaseVarC_SOURCES = BaseVarC.cpp BamProcess.cpp
+BaseVarC_SOURCES = BaseVarC.cpp BamProcess.cpp BaseType.cpp em.c

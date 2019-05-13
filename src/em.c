@@ -32,8 +32,6 @@ static void singleEM(double *allele_freq, double *ind_allele_likelihood, double 
         expect_allele_prob[j] = expect_allele_prob[j] / nsample;
     }
     free(ind_allele_prob);
-    
-    return;
 }
 
 static void update_allele_freq(double *allele_freq, double *expect_allele_prob, int ntype)
@@ -42,7 +40,6 @@ static void update_allele_freq(double *allele_freq, double *expect_allele_prob, 
         allele_freq[j] = expect_allele_prob[j];
         expect_allele_prob[j] = 0.0;
     }
-    return;
 }
 
 static double delta_bylog(double *bf, double *af, int n)
@@ -68,7 +65,7 @@ void EM(double *init_allele_freq, double *ind_allele_likelihood, double *margina
      copy allele_freq in case that init_allele_freq be modified; 
     */
     for(j = 0; j < ntype; ++j){
-	allele_freq[j] = init_allele_freq[j];
+        allele_freq[j] = init_allele_freq[j];
     }
     singleEM(allele_freq, ind_allele_likelihood, marginal_likelihood, expect_allele_prob, nsample, ntype);
 
@@ -83,7 +80,5 @@ void EM(double *init_allele_freq, double *ind_allele_likelihood, double *margina
 
     free(af_marginal_likelihood);
     free(allele_freq);
-
-    return;
 }
 
