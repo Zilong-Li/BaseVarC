@@ -173,7 +173,6 @@ void BamProcess::GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, Allel
     std::strcpy(seq, r.Sequence().c_str());    // must copy r.r.Sequence();
     std::strcpy(qualities, r.Qualities().c_str());
     // assign allele info
-    ale.sid = sid;
     ale.base = base_m.at(seq[offset]);
     // offset = 33 , so need to substract 33;
     ale.qual = qualities[offset] - 33;

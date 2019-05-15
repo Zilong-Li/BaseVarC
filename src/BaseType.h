@@ -3,57 +3,16 @@
 
 #include <algorithm>
 #include <complex>
-#include <unordered_map>
-#include <vector>
-#include "em.h"
-#include "ranksum.h"
-#include "htslib/kfunc.h"
+#include <sstream>
+#include "Stats.h"
 
 #define LRT_THRESHOLD 24    // chi-pvalue of 10^-6
-#define QUAL_THRESHOLD 60   // -10 * lg(10^-6)
 #define MLN10TO10 -0.23025850929940458    // -log(10)/10
 #define MINAF 0.001                       // base freqence threshold
+#define QUAL_THRESHOLD 60   // -10 * lg(10^-6)
 #define NTYPE 4
 
-const static uint8_t BASE[4] = {0, 1, 2, 3};
-
-typedef std::vector<float> ProbV;
-typedef std::vector<ProbV> FreqV;
-typedef std::vector<uint8_t> BaseV;
-typedef std::vector<BaseV> CombV;
-typedef std::unordered_map<int, int> DepM;
-
-void combs(const BaseV& bases, CombV& comb_v, int32_t k)
-{
-    // k <= n
-    int32_t n = bases.size();
-    std::string bitmask(k, 1); // K leading 1's
-    bitmask.resize(n, 0); // N-K trailing 0's
-
-    BaseV bv;
-    comb_v.clear();
-    bv.reserve(k);
-    do {
-        for (int32_t i = 0; i < n; ++i) // [0..N-1] integers
-        {
-            if (bitmask[i]) bv.push_back(bases[i]);
-        }
-        comb_v.push_back(bv);
-        bv.clear();
-    } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
-}
-
-inline double chisf(double x, double k)
-{
-    // sf = 1 - cdf
-    return 1 - kf_gammap(k/2, x/2);
-}
-
-inline double normsf(double x)
-{
-    // mean = 0, sd = 1
-    return 1 - (1 + erf(x/sqrt(2)))/2;
-}
+const static int8_t BASE[4] = {0, 1, 2, 3};
 
 class BaseType
 {
@@ -65,22 +24,24 @@ class BaseType
         delete []init_allele_freq;
     }
     void LRT();
+    void stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVector& aiv, Stat& s);
+    void writeVcf(const String& chr, int32_t pos, int8_t ref_base, const BaseType& bt, const AlleleInfoVector& aiv, const DepM& idx, int32_t N);
     double var_qual;
     BaseV alt_bases;
     ProbV af_lrt;
-    // std::unordered_map<uint8_t, float> af_lrt;
+    DepM depth{ {0, 0},{1, 0},{2, 0},{3, 0} };
+    double depth_total = 0;
 
  private:
     BaseV bases;
     BaseV quals;
     const int ref_base;
     const double min_af;
-    double depth_total = 0;
     int32_t nind;
-    DepM depth{ {0, 0},{1, 0},{2, 0},{3, 0} };
     double *ind_allele_likelihood;
     double *init_allele_freq;
 
+    void combs(const BaseV& bases, CombV& comb_v, int32_t k);
     void SetAlleleFreq(const BaseV& bases);
     void UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int32_t k);
 };

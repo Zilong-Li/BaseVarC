@@ -21,6 +21,26 @@ BaseType::BaseType(BaseV base, BaseV qual, int ref, double minaf) : bases(base),
     }
 }
 
+void BaseType::combs(const BaseV& bases, CombV& comb_v, int32_t k)
+{
+    // k <= n
+    int32_t n = bases.size();
+    std::string bitmask(k, 1); // K leading 1's
+    bitmask.resize(n, 0); // N-K trailing 0's
+
+    BaseV bv;
+    comb_v.clear();
+    bv.reserve(k);
+    do {
+        for (int32_t i = 0; i < n; ++i) // [0..N-1] integers
+        {
+            if (bitmask[i]) bv.push_back(bases[i]);
+        }
+        comb_v.push_back(bv);
+        bv.clear();
+    } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+}
+
 void BaseType::SetAlleleFreq(const BaseV& bases)
 {
     double depth_sum = 0;
@@ -86,18 +106,16 @@ void BaseType::LRT()
     if (bases.size() == 0) return;
     CombV bc;
     FreqV bp;
-    ProbV lr_null;
-    ProbV lrt_chi;
-    ProbV base_frq;
+    ProbV lr_null, lrt_chi, base_frq;
     UpdateF(bases, bc, lr_null, bp, bases.size());
     base_frq = bp[0];
-    auto lr_alt_t = lr_null[0];
+    double lr_alt_t = lr_null[0];
     double chi_sqrt_t = 0;
     int i_min;
     for (int32_t k = bases.size() - 1; k > 0; --k) {
         UpdateF(bases, bc, lr_null, bp, k);
         lrt_chi.clear();
-        for (auto& lr_null_t: lr_null) {
+        for (auto lr_null_t: lr_null) {
             lrt_chi.push_back(2.0 * (lr_alt_t - lr_null_t));
         }
         i_min = std::min_element(lrt_chi.begin(), lrt_chi.end()) - lrt_chi.begin();
@@ -112,11 +130,10 @@ void BaseType::LRT()
             break;
         }
     }
-    for (auto& b: bases) {
+    for (auto b: bases) {
         if (b != ref_base) {
             alt_bases.push_back(b);
             af_lrt.push_back(base_frq[b]);
-            // af_lrt.insert({b, base_frq[b]});
         }
     }
     double r, chi_prob;
@@ -132,5 +149,126 @@ void BaseType::LRT()
                 var_qual = 10000.0;
             }
         }
+        if (var_qual == 0) {
+            // output -0 to 0.0;
+            var_qual = 0.0;
+        }
     }
+    return;
+}
+
+void BaseType::stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVector& aiv, Stat& s)
+{
+    ProbV ref_quals, ref_mapqs, ref_rprs;
+    ProbV alt_quals, alt_mapqs, alt_rprs;
+    s.ref_fwd = 0;
+    s.ref_rev = 0;
+    s.alt_fwd = 0;
+    s.alt_rev = 0;
+    for (auto const& ai: aiv) {
+        if (ai.base == ref_base) {
+            ref_quals.push_back(ai.qual);
+            ref_mapqs.push_back(ai.mapq);
+            ref_rprs.push_back(ai.rpr);
+        } else if (std::find(alt_bases.begin(), alt_bases.end(), ai.base) != alt_bases.end()) {
+            alt_quals.push_back(ai.qual);
+            alt_mapqs.push_back(ai.mapq);
+            alt_rprs.push_back(ai.rpr);
+        }
+        if (ai.strand == 1) {
+            if (ai.base == ref_base) {
+                s.ref_fwd += 1;
+            } else if (std::find(alt_bases.begin(), alt_bases.end(), ai.base) != alt_bases.end()) {
+                s.alt_fwd += 1;
+            }
+        } else if (ai.strand == 0) {
+            if (ai.base == ref_base) {
+                s.ref_rev += 1;
+            } else if (std::find(alt_bases.begin(), alt_bases.end(), ai.base) != alt_bases.end()) {
+                s.alt_rev += 1;
+            }
+        }
+    }
+    double z_qual = RankSumTest(ref_quals.data(), ref_quals.size(), alt_quals.data(), alt_quals.size());
+    double z_mapq = RankSumTest(ref_mapqs.data(), ref_mapqs.size(), alt_mapqs.data(), alt_mapqs.size());
+    double z_rpr  = RankSumTest(ref_rprs.data(), ref_rprs.size(), alt_rprs.data(), alt_rprs.size());
+    s.phred_qual = -10 * log10(2 * normsf(abs(z_qual)));
+    s.phred_mapq = -10 * log10(2 * normsf(abs(z_mapq)));
+    s.phred_rpr  = -10 * log10(2 * normsf(abs(z_rpr)));
+    if (isinf(s.phred_qual)) s.phred_qual = 10000.0;
+    if (isinf(s.phred_mapq)) s.phred_mapq = 10000.0;
+    if (isinf(s.phred_rpr)) s.phred_rpr = 10000.0;
+    double left_p, right_p, twoside_p;
+    kt_fisher_exact(s.ref_fwd, s.ref_rev, s.alt_fwd, s.alt_rev, &left_p, &right_p, &twoside_p);
+    s.fs = -10 * log10(twoside_p);
+    if (isinf(s.fs)) s.fs = 10000.0;
+    if (s.ref_fwd * s.ref_rev > 0) {
+        s.sor = static_cast<double>(s.ref_fwd * s.alt_fwd) / (s.ref_rev * s.alt_rev);
+    } else {
+        s.sor = 10000.0;
+    }
+}
+
+void BaseType::writeVcf(const String& chr, int32_t pos, int8_t ref_base, const BaseType& bt, const AlleleInfoVector& aiv, const DepM& idx, int32_t N)
+{
+    std::unordered_map<uint8_t, String > alt_gt;
+    String gt;
+    for (size_t i = 0; i < bt.alt_bases.size(); ++i) {
+        gt = "./" + std::to_string(i + 1);
+        alt_gt.insert({bt.alt_bases[i], gt});
+    }
+    String sams = "";
+    for (int32_t i = 0; i < N; ++i) {
+        if (idx.count(i) == 0) {
+            sams += "./.\t";
+        } else {
+            auto const& a = aiv[idx.at(i)];
+            if (alt_gt.count(a.base) == 0) alt_gt.insert({a.base, "./."});
+            if (a.base == ref_base) {
+                gt = "0/.";
+            } else {
+                gt = alt_gt[a.base];
+            }
+            sams += gt + ":" + BASE2CHAR[a.base] + ":" + STRAND[a.strand] + ":" + std::to_string(1 - exp(MLN10TO10 * a.qual)) + "\t";
+        }
+    }
+    Stat st;
+    stats(ref_base, bt.alt_bases, aiv, st);
+    double ad_sum = 0;
+    String ac = "CM_AC=", af = "CM_AF=", caf = "CM_CAF=";
+    std::stringstream alt_s;
+    for (auto b : bt.alt_bases) {
+        ad_sum += bt.depth.at(b);
+        alt_s << BASE2CHAR[b] << ",";
+        ac += std::to_string(bt.depth.at(b)) + ",";
+        af += std::to_string(bt.af_lrt[b]) + ",";
+        caf += std::to_string(bt.depth.at(b)/bt.depth_total) + ",";
+    }
+    String alt = alt_s.str();
+    // remove the last char;
+    ac.pop_back();
+    af.pop_back();
+    caf.pop_back();
+    alt.pop_back();
+    sams.pop_back();
+    String qd = "QD=" + std::to_string(bt.var_qual/ad_sum);
+    String dp = "CM_DP=" + std::to_string(static_cast<int>(bt.depth_total));
+    String mq = "MQRankSum=" + std::to_string(st.phred_mapq);
+    String rp = "ReadPosRankSum=" + std::to_string(st.phred_rpr);
+    String bq = "BaseQRankSum=" + std::to_string(st.phred_qual);
+    String fs = "FS=" + std::to_string(st.fs);
+    String sor = "SOR=" + std::to_string(st.sor);
+    String sb_ref = "SB_REF=" + std::to_string(st.ref_fwd) + "," + std::to_string(st.ref_rev);
+    String sb_alt = "SB_ALT=" + std::to_string(st.alt_fwd) + "," + std::to_string(st.alt_rev);
+    String qt;
+    if (bt.var_qual > QUAL_THRESHOLD) {
+        qt = ".";
+    } else {
+        qt = "LowQual";
+    }
+    char col = ';';
+    char tab = '\t';
+    std::stringstream out;
+    out << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab << bq << col << ac << col << af << col << caf << col << dp << col << mq << col << rp << col << sb_alt << col << sb_ref << col << sor << tab << sams;
+    std::cout << out.str() << std::endl;
 }

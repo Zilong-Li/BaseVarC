@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 # AC_PREREQ(2.59) ## specificy version of autoconf
-AC_INIT(BaseVarC, 0.0, lizilong@bgi.com)
+AC_INIT(BaseVarC, 0.01, lizilong@bgi.com)
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR([src/BaseVarC.cpp])
 AC_CONFIG_HEADER([config.h])
@@ -41,6 +41,6 @@ AC_SUBST(LDFLAGS, "$LDFLAGS -pthread")
 
 AC_CONFIG_FILES([Makefile
                  SeqLib/src/Makefile
-	         src/Makefile])
+	             src/Makefile])
 
 AC_OUTPUT

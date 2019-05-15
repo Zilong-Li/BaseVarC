@@ -9,6 +9,7 @@
 #include "htslib/bgzf.h"
 #include "RefReader.h"
 #include "BamProcess.h"
+#include "BaseType.h"
 
 static const char* BASEVARC_USAGE_MESSAGE = 
 "Program: BaseVarC -- A c version of BaseVar\n"
@@ -53,6 +54,9 @@ static const char* CONCAT_MESSAGE =
 "  --input,      -l       list of matrix files for concat, one file per row.\n"
 "  --output,     -o       output path (will be added suffix .gz at the end)\n"
 "\nReport bugs to lizilong@bgi.com \n\n";
+
+typedef std::vector<int32_t> IntV;
+typedef std::string String;
 
 void runBaseType(int argc, char **argv);
 void runPopMatrix(int argc, char **argv);
@@ -111,8 +115,8 @@ int main(int argc, char** argv)
 void runConcat(int argc, char **argv)
 {
     parseOptions(argc, argv, CONCAT_MESSAGE);
-    std::string fm = opt::input;
-    std::string fo = opt::output;
+    String fm = opt::input;
+    String fo = opt::output;
     clock_t ctb = clock();
     std::ifstream ifm(fm);
     std::vector<std::string> fm_v(std::istream_iterator<BaseVar::Line>{ifm},
@@ -122,17 +126,17 @@ void runConcat(int argc, char **argv)
     BGZF* fp = NULL;
     kstring_t ks;
     ks.s = 0; ks.l = 0; ks.m = 0;
-    std::string ss;
-    std::vector<std::string> Drg;
-    std::vector<std::vector<std::string>> D;
+    String ss;
+    std::vector<String> Drg;
+    std::vector<std::vector<String>> D;
     D.reserve(nm);
     for (k = 0; k < nm ; ++k) {
         std::cout << "reading file : " << fm_v[k] << std::endl;
         fp = bgzf_open(fm_v[k].c_str(), "r");
         if (bgzf_getline(fp, '\n', &ks) >= 0) {
             ss = ks.s;
-            std::vector<std::string> tokens;
-            std::string token;
+            std::vector<String> tokens;
+            String token;
             std::istringstream ts(ss);
             while (std::getline(ts, token, '\t')) tokens.push_back(token);
             if (n > 0 && n != std::stol(tokens[0])) {
@@ -195,55 +199,72 @@ void runBaseType(int argc, char **argv)
     parseOptions(argc, argv, BASETYPE_MESSAGE);
     std::cerr << "basetype start" << std::endl;
     std::ifstream ibam(opt::input);
-    std::vector<std::string> bams(std::istream_iterator<BaseVar::Line>{ibam},
+    std::vector<String> bams(std::istream_iterator<BaseVar::Line>{ibam},
     	                          std::istream_iterator<BaseVar::Line>{});
     RefReader fa;
     fa.GetTargetBase(opt::region, opt::reference);
-    std::string chr;
+    String chr;
     int32_t rg_s, rg_e;
     std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(opt::region);
-    std::vector<int32_t> pv;
-    for (int32_t i = 0; i < fa.seq.length(); i++) {
+    IntV pv;
+    for (size_t i = 0; i < fa.seq.length(); i++) {
         if (fa.seq[i] == 'N') continue;
         pv.push_back(i + rg_s);       // 1-based
     }
     int32_t count = 0;
     const int32_t N = bams.size();
     std::vector<PosAlleleMap> allele_mv;
-    std::unordered_map<int32_t, std::string> sm_m;
-    for (int32_t i = 0; i < N; i++) {
+    std::unordered_map<int32_t, String> sm_m;
+    for (int32_t i = 0; i < N; ++i) {
         BamProcess reader;
         if (!(++count % 1000)) std::cerr << "Processing the number " << count / 1000 << "k bam" << std::endl;
         if (!reader.Open(bams[i])) {
             std::cerr << "ERROR: could not open file " << bams[i] << std::endl;
             exit(EXIT_FAILURE);
         }
-        reader.sid = i;
         reader.FindSnpAtPos(opt::region, pv);
+        // @FIXME make sure allele_m is initialized.
         allele_mv.push_back(reader.allele_m);
-        sm_m.insert({reader.sid, reader.sm});
+        sm_m.insert({i, reader.sm});
         if (!reader.Close()) {
             std::cerr << "Warning: could not close file " << bams[i] << std::endl;
         }
     }
+    assert(allele_mv.size() == N);
     std::stringstream ss;
+    int8_t ref_base;
+    double min_af = 0.001;
     for (auto const& p: pv) {
         // FIXME: 这里需要对应样本ID信息
         AlleleInfoVector aiv;
-    	for (auto const& m: allele_mv) {
+        DepM idx;
+        int32_t j = 0;
+    	for (int32_t i = 0; i < N; ++i) {
+            auto& m = allele_mv[i];
     	    if (m.count(p) == 0) {
                 continue;
-    	    } else {
-                ss << m.at(p).base;
+    	    } else if (m[p].base != 4) {
                 // skip N base
-                if (m.at(p).base != 4) aiv.push_back(m.at(p));
+                ss << m[p].base;
+                aiv.push_back(m[p]);
+                idx.insert({i, j++});
     	    }
     	}
     	ss << "\n";
         // skip coverage==0
         if (aiv.size() > 0) {
             // here call BaseType
-            std::cout << p << "\t" << aiv[0].sid << std::endl;
+            ref_base = BASE_INT8_TABLE[fa.seq[p - rg_s]];
+            BaseV bases, quals;
+            for (auto const& a: aiv) {
+                bases.push_back(a.base);
+                quals.push_back(a.qual);
+            }
+            BaseType bt(bases, quals, ref_base, min_af);
+            bt.LRT();
+            if (bt.alt_bases.size() > 0) {
+                bt.writeVcf(chr, p, ref_base, bt, aiv, idx, N);
+            }
         }
     }
     std::string out = ss.str();
