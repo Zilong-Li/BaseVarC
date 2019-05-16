@@ -202,13 +202,13 @@ void runBaseType(int argc, char **argv)
     std::vector<String> bams(std::istream_iterator<BaseVar::Line>{ibam},
     	                          std::istream_iterator<BaseVar::Line>{});
     RefReader fa;
-    fa.GetTargetBase(opt::region, opt::reference);
+    String seq = fa.GetTargetBase(opt::region, opt::reference);
     String chr;
     int32_t rg_s, rg_e;
     std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(opt::region);
     IntV pv;
-    for (size_t i = 0; i < fa.seq.length(); i++) {
-        if (fa.seq[i] == 'N') continue;
+    for (size_t i = 0; i < seq.length(); i++) {
+        if (seq[i] == 'N') continue;
         pv.push_back(i + rg_s);       // 1-based
     }
     int32_t count = 0;
@@ -237,9 +237,9 @@ void runBaseType(int argc, char **argv)
     BaseV bases, quals;
     AlleleInfoVector aiv;
     DepM idx;
+    int32_t j;
     for (auto const& p: pv) {
-        // FIXME: 这里需要对应样本ID信息
-        int32_t j = 0;
+        j = 0;
     	for (int32_t i = 0; i < N; ++i) {
             auto& m = allele_mv[i];
     	    if (m.count(p) == 0) {
@@ -253,7 +253,8 @@ void runBaseType(int argc, char **argv)
         // skip coverage==0
         if (aiv.size() > 0) {
             // here call BaseType
-            ref_base = BASE_INT8_TABLE[fa.seq[p - rg_s]];
+            std::cerr << p << "\t" << seq[p - rg_s] << std::endl;
+            ref_base = BASE_INT8_TABLE[seq[p - rg_s]];
             ss << p << "\t" << ref_base << "\t";
             for (auto const& a: aiv) {
                 ss << a.base;
@@ -263,7 +264,7 @@ void runBaseType(int argc, char **argv)
             BaseType bt(bases, quals, ref_base, min_af);
             if (bt.LRT()) {
                 ss << "\t" << bt.alt_bases.size();
-                bt.WriteVcf(chr, p, ref_base, bt, aiv, idx, N);
+                bt.WriteVcf(bt, chr, p, ref_base, aiv, idx, N);
             }
             bases.clear();
             quals.clear();

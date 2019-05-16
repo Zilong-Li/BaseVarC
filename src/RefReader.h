@@ -10,14 +10,14 @@ class RefReader: public SeqLib::RefGenome
     RefReader(){}
     ~RefReader(){}
     // rg is samtools-like region
-    void GetTargetBase(std::string rg, const std::string& f);
-    std::string seq;
+    std::string GetTargetBase(std::string rg, const std::string& f);
 
 };
 
-void RefReader::GetTargetBase(std::string rg, const std::string& f)
+std::string RefReader::GetTargetBase(std::string rg, const std::string& f)
 {
     std::string chr;
+    std::string seq;
     int32_t rg_s, rg_e;
     std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(rg);
     if (!LoadIndex(f)) {
@@ -29,6 +29,7 @@ void RefReader::GetTargetBase(std::string rg, const std::string& f)
         if (i >= 65 && i <= 90) continue;
         i = i ^ 0x20;
     }
+    return seq;
 }
 
 #endif

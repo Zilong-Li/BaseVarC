@@ -24,8 +24,7 @@ class BaseType
         delete []init_allele_freq;
     }
     bool LRT();
-    void stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVector& aiv, Stat& s);
-    void WriteVcf(const String& chr, int32_t pos, int8_t ref_base, const BaseType& bt, const AlleleInfoVector& aiv, const DepM& idx, int32_t N);
+    void WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, int32_t N);
     double var_qual;
     BaseV alt_bases;
     DepM depth;
@@ -41,6 +40,7 @@ class BaseType
     double *ind_allele_likelihood;
     double *init_allele_freq;
 
+    void stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVector& aiv, Stat& s);
     void combs(const BaseV& bases, CombV& comb_v, int32_t k);
     void SetAlleleFreq(const BaseV& bases);
     void UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int32_t k);
