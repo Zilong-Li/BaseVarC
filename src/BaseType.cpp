@@ -22,26 +22,6 @@ BaseType::BaseType(BaseV base, BaseV qual, int8_t ref, double minaf) : bases(bas
     }
 }
 
-void BaseType::combs(const BaseV& bases, CombV& comb_v, int32_t k)
-{
-    // k <= n
-    int32_t n = bases.size();
-    std::string bitmask(k, 1); // K leading 1's
-    bitmask.resize(n, 0); // N-K trailing 0's
-
-    BaseV bv;
-    comb_v.clear();
-    bv.reserve(k);
-    do {
-        for (int32_t i = 0; i < n; ++i) // [0..N-1] integers
-        {
-            if (bitmask[i]) bv.push_back(bases[i]);
-        }
-        comb_v.push_back(bv);
-        bv.clear();
-    } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
-}
-
 void BaseType::SetAlleleFreq(const BaseV& bases)
 {
     double depth_sum = 0;
@@ -137,7 +117,7 @@ bool BaseType::LRT()
     for (auto b: bases) {
         if (b != ref_base) {
             alt_bases.push_back(b);
-            af_lrt.push_back(base_frq[b]);
+            af_lrt.insert({b, base_frq[b]});
         }
     }
     double r, chi_prob;
@@ -160,6 +140,70 @@ bool BaseType::LRT()
         return true;
     }
     return false;
+}
+
+void BaseType::WriteVcf(const String& chr, int32_t pos, int8_t ref_base, const BaseType& bt, const AlleleInfoVector& aiv, const DepM& idx, int32_t N)
+{
+    std::unordered_map<uint8_t, String> alt_gt;
+    String gt;
+    for (size_t i = 0; i < bt.alt_bases.size(); ++i) {
+        gt = "./" + std::to_string(i + 1);
+        alt_gt.insert({bt.alt_bases[i], gt});
+    }
+    String sams = "";
+    for (int32_t i = 0; i < N; ++i) {
+        if (idx.count(i) == 0) {
+            sams += "./.\t";
+        } else {
+            auto const& a = aiv[idx.at(i)];
+            if (alt_gt.count(a.base) == 0) alt_gt.insert({a.base, "./."});
+            if (a.base == ref_base) {
+                gt = "0/.";
+            } else {
+                gt = alt_gt[a.base];
+            }
+            sams += gt + ":" + BASE2CHAR[a.base] + ":" + STRAND[a.strand] + ":" + std::to_string(1 - exp(MLN10TO10 * a.qual)) + "\t";
+        }
+    }
+    Stat st;
+    stats(ref_base, bt.alt_bases, aiv, st);
+    double ad_sum = 0;
+    String ac = "CM_AC=", af = "CM_AF=", caf = "CM_CAF=";
+    std::stringstream alt_s;
+    for (auto b : bt.alt_bases) {
+        ad_sum += bt.depth.at(b);
+        alt_s << BASE2CHAR[b] << ",";
+        ac += std::to_string(bt.depth.at(b)) + ",";
+        af += std::to_string(bt.af_lrt.at(b)) + ",";
+        caf += std::to_string(bt.depth.at(b)/bt.depth_total) + ",";
+    }
+    String alt = alt_s.str();
+    // remove the last char;
+    ac.pop_back();
+    af.pop_back();
+    caf.pop_back();
+    alt.pop_back();
+    sams.pop_back();
+    String qd = "QD=" + std::to_string(bt.var_qual/ad_sum);
+    String dp = "CM_DP=" + std::to_string(static_cast<int>(bt.depth_total));
+    String mq = "MQRankSum=" + std::to_string(st.phred_mapq);
+    String rp = "ReadPosRankSum=" + std::to_string(st.phred_rpr);
+    String bq = "BaseQRankSum=" + std::to_string(st.phred_qual);
+    String fs = "FS=" + std::to_string(st.fs);
+    String sor = "SOR=" + std::to_string(st.sor);
+    String sb_ref = "SB_REF=" + std::to_string(st.ref_fwd) + "," + std::to_string(st.ref_rev);
+    String sb_alt = "SB_ALT=" + std::to_string(st.alt_fwd) + "," + std::to_string(st.alt_rev);
+    String qt;
+    if (bt.var_qual > QUAL_THRESHOLD) {
+        qt = ".";
+    } else {
+        qt = "LowQual";
+    }
+    char col = ';';
+    char tab = '\t';
+    std::stringstream out;
+    out << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab << bq << col << ac << col << af << col << caf << col << dp << col << mq << col << rp << col << sb_alt << col << sb_ref << col << sor << tab << sams;
+    std::cout << out.str() << std::endl;
 }
 
 void BaseType::stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVector& aiv, Stat& s)
@@ -214,66 +258,22 @@ void BaseType::stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVe
     }
 }
 
-void BaseType::WriteVcf(const String& chr, int32_t pos, int8_t ref_base, const BaseType& bt, const AlleleInfoVector& aiv, const DepM& idx, int32_t N)
+void BaseType::combs(const BaseV& bases, CombV& comb_v, int32_t k)
 {
-    std::unordered_map<uint8_t, String> alt_gt;
-    String gt;
-    for (size_t i = 0; i < bt.alt_bases.size(); ++i) {
-        gt = "./" + std::to_string(i + 1);
-        alt_gt.insert({bt.alt_bases[i], gt});
-    }
-    String sams = "";
-    for (int32_t i = 0; i < N; ++i) {
-        if (idx.count(i) == 0) {
-            sams += "./.\t";
-        } else {
-            auto const& a = aiv[idx.at(i)];
-            if (alt_gt.count(a.base) == 0) alt_gt.insert({a.base, "./."});
-            if (a.base == ref_base) {
-                gt = "0/.";
-            } else {
-                gt = alt_gt[a.base];
-            }
-            sams += gt + ":" + BASE2CHAR[a.base] + ":" + STRAND[a.strand] + ":" + std::to_string(1 - exp(MLN10TO10 * a.qual)) + "\t";
+    // k <= n
+    int32_t n = bases.size();
+    std::string bitmask(k, 1); // K leading 1's
+    bitmask.resize(n, 0); // N-K trailing 0's
+
+    BaseV bv;
+    comb_v.clear();
+    bv.reserve(k);
+    do {
+        for (int32_t i = 0; i < n; ++i) // [0..N-1] integers
+        {
+            if (bitmask[i]) bv.push_back(bases[i]);
         }
-    }
-    Stat st;
-    stats(ref_base, bt.alt_bases, aiv, st);
-    double ad_sum = 0;
-    String ac = "CM_AC=", af = "CM_AF=", caf = "CM_CAF=";
-    std::stringstream alt_s;
-    for (auto b : bt.alt_bases) {
-        ad_sum += bt.depth.at(b);
-        alt_s << BASE2CHAR[b] << ",";
-        ac += std::to_string(bt.depth.at(b)) + ",";
-        af += std::to_string(bt.af_lrt[b]) + ",";
-        caf += std::to_string(bt.depth.at(b)/bt.depth_total) + ",";
-    }
-    String alt = alt_s.str();
-    // remove the last char;
-    ac.pop_back();
-    af.pop_back();
-    caf.pop_back();
-    alt.pop_back();
-    sams.pop_back();
-    String qd = "QD=" + std::to_string(bt.var_qual/ad_sum);
-    String dp = "CM_DP=" + std::to_string(static_cast<int>(bt.depth_total));
-    String mq = "MQRankSum=" + std::to_string(st.phred_mapq);
-    String rp = "ReadPosRankSum=" + std::to_string(st.phred_rpr);
-    String bq = "BaseQRankSum=" + std::to_string(st.phred_qual);
-    String fs = "FS=" + std::to_string(st.fs);
-    String sor = "SOR=" + std::to_string(st.sor);
-    String sb_ref = "SB_REF=" + std::to_string(st.ref_fwd) + "," + std::to_string(st.ref_rev);
-    String sb_alt = "SB_ALT=" + std::to_string(st.alt_fwd) + "," + std::to_string(st.alt_rev);
-    String qt;
-    if (bt.var_qual > QUAL_THRESHOLD) {
-        qt = ".";
-    } else {
-        qt = "LowQual";
-    }
-    char col = ';';
-    char tab = '\t';
-    std::stringstream out;
-    out << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab << bq << col << ac << col << af << col << caf << col << dp << col << mq << col << rp << col << sb_alt << col << sb_ref << col << sor << tab << sams;
-    std::cout << out.str() << std::endl;
+        comb_v.push_back(bv);
+        bv.clear();
+    } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
 }
