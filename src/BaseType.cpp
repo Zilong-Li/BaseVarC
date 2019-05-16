@@ -1,11 +1,12 @@
 #include "BaseType.h"
 
-BaseType::BaseType(BaseV base, BaseV qual, int ref, double minaf) : bases(base), quals(qual), ref_base(ref), min_af(minaf)
+BaseType::BaseType(BaseV base, BaseV qual, int8_t ref, double minaf) : bases(base), quals(qual), ref_base(ref), min_af(minaf), nind(base.size())
 {
-    nind = bases.size();
     var_qual = 0;
+    depth_total = 0;
     init_allele_freq = new double[NTYPE]; // @WATCHOUT
     ind_allele_likelihood = new double[nind * NTYPE]; // @WATCHOUT
+    depth = { {0, 0},{1, 0},{2, 0},{3, 0} };
     for (int32_t i = 0; i < nind; ++i) {
         for (int j = 0; j < NTYPE; ++j) {
             if (bases[i] == BASE[j]) {
@@ -14,7 +15,7 @@ BaseType::BaseType(BaseV base, BaseV qual, int ref, double minaf) : bases(base),
                 ind_allele_likelihood[i * NTYPE + j] = exp(MLN10TO10 * quals[i]) / 3.0;
             }
         }
-        if (depth.count(bases[i]) == 1) depth[bases[i]] += 1;
+        depth[bases[i]] += 1;
     }
     for (DepM::iterator it = depth.begin(); it != depth.end(); ++it) {
         depth_total += it->second;
@@ -44,14 +45,14 @@ void BaseType::combs(const BaseV& bases, CombV& comb_v, int32_t k)
 void BaseType::SetAlleleFreq(const BaseV& bases)
 {
     double depth_sum = 0;
-    for (auto const& b : bases) {
+    for (auto& b : bases) {
         depth_sum += depth[b];
     }
     for (int j = 0; j < NTYPE; ++j) {
         init_allele_freq[j] = 0;
     }
     if (depth_sum > 0) {
-        for (auto const& b : bases) {
+        for (auto& b : bases) {
             init_allele_freq[b] = depth[b] / depth_sum;
         }
     }
@@ -59,17 +60,17 @@ void BaseType::SetAlleleFreq(const BaseV& bases)
 
 void BaseType::UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int32_t k)
 {
-    // REMINDME: consider comb_v.reserve
-    combs(bases, bc, k);
     double *marginal_likelihood = new double[nind](); // @WATCHOUT
     double *expect_allele_prob = new double[NTYPE]();
-    double freq_sum = 0;
-    double likelihood_sum = 0;
+    double freq_sum, likelihood_sum;
     double epsilon = 0.001;
     int iter_num = 100;
     ProbV expect_prob;
     lr.clear();
     bp.clear();
+    bc.clear();
+    // REMINDME: consider comb_v.reserve
+    combs(bases, bc, k);
     for (auto const& b: bc) {
         SetAlleleFreq(b);
         freq_sum = 0;
@@ -77,42 +78,45 @@ void BaseType::UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int3
         if (freq_sum == 0) continue;  // skip coverage = 0, this may be redundant;
         // run EM
         EM(init_allele_freq, ind_allele_likelihood, marginal_likelihood, expect_allele_prob, nind, NTYPE, iter_num, epsilon);
+        expect_prob.assign(expect_allele_prob, expect_allele_prob + NTYPE);
+        bp.push_back(expect_prob);
         likelihood_sum = 0;
         for (int32_t i = 0; i < nind; ++i) {
             likelihood_sum += log(marginal_likelihood[i]);
             // reset array elements to 0
             marginal_likelihood[i] = 0;
+            if (i < NTYPE) {
+                expect_allele_prob[i] = 0;
+            }
         }
-        expect_prob.assign(expect_allele_prob, expect_allele_prob + NTYPE);
         lr.push_back(likelihood_sum);
-        bp.push_back(expect_prob);
-        std::fill(expect_allele_prob, expect_allele_prob + NTYPE, 0);
     }
 
     delete []marginal_likelihood;
     delete []expect_allele_prob;
 }
 
-void BaseType::LRT()
+bool BaseType::LRT()
 {
-    if (depth_total == 0) return;
+    if (depth_total == 0) return false;
     bases.clear();
-    for (auto const& b : BASE) {
+    for (auto b : BASE) {
         // filter bases by count freqence >= min_af
-        if (depth[b]/depth_total >= min_af) {
+        if ((depth[b]/depth_total) >= min_af) {
             bases.push_back(b);
         }
     }
-    if (bases.size() == 0) return;
+    if (bases.size() == 0) return false;
     CombV bc;
     FreqV bp;
-    ProbV lr_null, lrt_chi, base_frq;
+    ProbV lr_null, lrt_chi;
     UpdateF(bases, bc, lr_null, bp, bases.size());
-    base_frq = bp[0];
+    ProbV base_frq = bp[0];
     double lr_alt_t = lr_null[0];
     double chi_sqrt_t = 0;
-    int i_min;
-    for (int32_t k = bases.size() - 1; k > 0; --k) {
+    int32_t n = bases.size();
+    int32_t i_min;
+    for (int32_t k = n - 1; k > 0; --k) {
         UpdateF(bases, bc, lr_null, bp, k);
         lrt_chi.clear();
         for (auto lr_null_t: lr_null) {
@@ -153,8 +157,9 @@ void BaseType::LRT()
             // output -0 to 0.0;
             var_qual = 0.0;
         }
+        return true;
     }
-    return;
+    return false;
 }
 
 void BaseType::stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVector& aiv, Stat& s)
@@ -209,9 +214,9 @@ void BaseType::stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVe
     }
 }
 
-void BaseType::writeVcf(const String& chr, int32_t pos, int8_t ref_base, const BaseType& bt, const AlleleInfoVector& aiv, const DepM& idx, int32_t N)
+void BaseType::WriteVcf(const String& chr, int32_t pos, int8_t ref_base, const BaseType& bt, const AlleleInfoVector& aiv, const DepM& idx, int32_t N)
 {
-    std::unordered_map<uint8_t, String > alt_gt;
+    std::unordered_map<uint8_t, String> alt_gt;
     String gt;
     for (size_t i = 0; i < bt.alt_bases.size(); ++i) {
         gt = "./" + std::to_string(i + 1);

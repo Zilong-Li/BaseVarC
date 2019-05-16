@@ -234,10 +234,11 @@ void runBaseType(int argc, char **argv)
     std::stringstream ss;
     int8_t ref_base;
     double min_af = 0.001;
+    BaseV bases, quals;
+    AlleleInfoVector aiv;
+    DepM idx;
     for (auto const& p: pv) {
         // FIXME: 这里需要对应样本ID信息
-        AlleleInfoVector aiv;
-        DepM idx;
         int32_t j = 0;
     	for (int32_t i = 0; i < N; ++i) {
             auto& m = allele_mv[i];
@@ -245,27 +246,31 @@ void runBaseType(int argc, char **argv)
                 continue;
     	    } else if (m[p].base != 4) {
                 // skip N base
-                ss << m[p].base;
                 aiv.push_back(m[p]);
                 idx.insert({i, j++});
     	    }
     	}
-    	ss << "\n";
         // skip coverage==0
         if (aiv.size() > 0) {
             // here call BaseType
             ref_base = BASE_INT8_TABLE[fa.seq[p - rg_s]];
-            BaseV bases, quals;
+            ss << p << "\t" << ref_base << "\t";
             for (auto const& a: aiv) {
+                ss << a.base;
                 bases.push_back(a.base);
                 quals.push_back(a.qual);
             }
             BaseType bt(bases, quals, ref_base, min_af);
-            bt.LRT();
-            if (bt.alt_bases.size() > 0) {
-                bt.writeVcf(chr, p, ref_base, bt, aiv, idx, N);
+            if (bt.LRT()) {
+                ss << "\t" << bt.alt_bases.size();
+                bt.WriteVcf(chr, p, ref_base, bt, aiv, idx, N);
             }
+            bases.clear();
+            quals.clear();
+            ss << "\n";
         }
+        aiv.clear();
+        idx.clear();
     }
     std::string out = ss.str();
     BGZF* fp = bgzf_open(opt::output.c_str(), "w");

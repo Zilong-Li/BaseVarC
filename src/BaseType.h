@@ -18,26 +18,26 @@ class BaseType
 {
  public:
     // REMINDME: consider using AlleleInfoVector directly
-    BaseType(BaseV base, BaseV qual, int ref, double minaf);
+    BaseType(BaseV base, BaseV qual, int8_t ref, double minaf);
     ~BaseType() {
         delete []ind_allele_likelihood;
         delete []init_allele_freq;
     }
-    void LRT();
+    bool LRT();
     void stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVector& aiv, Stat& s);
-    void writeVcf(const String& chr, int32_t pos, int8_t ref_base, const BaseType& bt, const AlleleInfoVector& aiv, const DepM& idx, int32_t N);
+    void WriteVcf(const String& chr, int32_t pos, int8_t ref_base, const BaseType& bt, const AlleleInfoVector& aiv, const DepM& idx, int32_t N);
     double var_qual;
     BaseV alt_bases;
     ProbV af_lrt;
-    DepM depth{ {0, 0},{1, 0},{2, 0},{3, 0} };
-    double depth_total = 0;
+    DepM depth;
+    double depth_total;
 
  private:
     BaseV bases;
     BaseV quals;
-    const int ref_base;
+    const int8_t ref_base;
     const double min_af;
-    int32_t nind;
+    const int32_t nind;
     double *ind_allele_likelihood;
     double *init_allele_freq;
 
