@@ -222,10 +222,8 @@ void runBaseType(int argc, char **argv)
             std::cerr << "ERROR: could not open file " << bams[i] << std::endl;
             exit(EXIT_FAILURE);
         }
-        reader.FindSnpAtPos(opt::region, pv);
-        // @FIXME make sure allele_m is initialized.
-        if (reader.allele_m.empty()) {
-            std::cerr << "empty\n";
+        if (!reader.FindSnpAtPos(opt::region, pv)) {
+            std::cerr << "Warning: " << reader.sm << " region " << opt::region << " is empty." << std::endl;
         }
         allele_mv.push_back(reader.allele_m);
         sm_m.insert({i, reader.sm});
@@ -241,6 +239,8 @@ void runBaseType(int argc, char **argv)
     AlleleInfoVector aiv;
     DepM idx;
     int32_t j;
+    String vcfout = opt::output;
+    BGZF* fp = bgzf_open(vcfout.c_str(), "w");
     for (auto const& p: pv) {
         j = 0;
     	for (int32_t i = 0; i < N; ++i) {
@@ -265,7 +265,7 @@ void runBaseType(int argc, char **argv)
             BaseType bt(bases, quals, ref_base, min_af);
             if (bt.LRT()) {
                 ss << "\t" << bt.alt_bases.size();
-                bt.WriteVcf(bt, chr, p, ref_base, aiv, idx, N);
+                bt.WriteVcf(fp, bt, chr, p, ref_base, aiv, idx, N);
             }
             bases.clear();
             quals.clear();
@@ -274,13 +274,8 @@ void runBaseType(int argc, char **argv)
         aiv.clear();
         idx.clear();
     }
-    std::string out = ss.str();
-    BGZF* fp = bgzf_open(opt::output.c_str(), "w");
-    if (bgzf_write(fp, out.c_str(), out.length()) != out.length()) {
-    	std::cerr << "failed to write" << std::endl;
-    	exit(EXIT_FAILURE);
-    }
     if (bgzf_close(fp) < 0) std::cerr << "failed to close \n";
+    std::cerr << ss.str() << std::endl;
     std::cerr << "basetype done" << std::endl;
 }
 

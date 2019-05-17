@@ -5,6 +5,7 @@
 #include <complex>
 #include <sstream>
 #include "Stats.h"
+#include "htslib/bgzf.h"
 
 #define LRT_THRESHOLD 24    // chi-pvalue of 10^-6
 #define MLN10TO10 -0.23025850929940458    // -log(10)/10
@@ -24,7 +25,8 @@ class BaseType
         delete []init_allele_freq;
     }
     bool LRT();
-    void WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, int32_t N);
+    void WriteVcf(BGZF* fp, const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, int32_t N);
+
     double var_qual;
     BaseV alt_bases;
     DepM depth;

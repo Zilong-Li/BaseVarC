@@ -36,7 +36,7 @@ bool BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
     // check again;
     if (rv.empty()) return false;
     bool flag = false;
-    uint32_t i = 0, j = 0;
+    size_t i = 0, j = 0;
     r = rv[i];
     const std::string SKIP = "DPN";
     AlleleInfo ale;
@@ -78,7 +78,7 @@ bool BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
                 ;    //continue is a bug; should do nothing
             } else {
                 GetAllele(r, pos, ale);
-                allele_m.insert({pos, ale});     // key might change to 'chr:pos'
+                allele_m.insert({pos, ale});
             }
             r = rv[i];     // all back to index i
             j = i;
@@ -113,7 +113,7 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const PosInfoVector& pv)
         }
     } else {
         bool flag = false;
-        uint32_t  i = 0, j = 0;
+        size_t  i = 0, j = 0;
         r = rv[i];
         snps.reserve(pv.size());       // best practice;
         const std::string SKIP = "DPN";

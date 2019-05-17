@@ -147,7 +147,7 @@ bool BaseType::LRT()
     return false;
 }
 
-void BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, int32_t N)
+void BaseType::WriteVcf(BGZF* fp, const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, int32_t N)
 {
     std::unordered_map<uint8_t, String> alt_gt;
     String gt;
@@ -206,9 +206,13 @@ void BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8
     }
     char col = ';';
     char tab = '\t';
-    std::stringstream out;
-    out << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab << bq << col << ac << col << af << col << caf << col << dp << col << fs << col << mq << col << rp << col << sb_alt << col << sb_ref << col << sor << tab << sams;
-    std::cout << out.str() << std::endl;
+    std::stringstream sout;
+    sout << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab << bq << col << ac << col << af << col << caf << col << dp << col << fs << col << mq << col << rp << col << sb_alt << col << sb_ref << col << sor << tab << sams << "\n";
+    String out = sout.str();
+    if (bgzf_write(fp, out.c_str(), out.length()) != out.length()) {
+    	std::cerr << "failed to write" << std::endl;
+    	exit(EXIT_FAILURE);
+    }
 }
 
 void BaseType::stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVector& aiv, Stat& s)
