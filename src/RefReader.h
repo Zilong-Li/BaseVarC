@@ -10,11 +10,11 @@ class RefReader: public SeqLib::RefGenome
     RefReader(){}
     ~RefReader(){}
     // rg is samtools-like region
-    std::string GetTargetBase(std::string rg, const std::string& f);
+    std::string GetTargetBase(const std::string& rg, const std::string& f);
 
 };
 
-std::string RefReader::GetTargetBase(std::string rg, const std::string& f)
+std::string RefReader::GetTargetBase(const std::string& rg, const std::string& f)
 {
     std::string chr;
     std::string seq;
@@ -24,7 +24,7 @@ std::string RefReader::GetTargetBase(std::string rg, const std::string& f)
         std::cerr << "reference must be index with samtools faidx" << std::endl;
         exit(EXIT_FAILURE);
     }
-    seq = QueryRegion(chr, rg_s, rg_e);
+    seq = QueryRegion(chr, rg_s - 1, rg_e - 1);    // make 0-based
     for (auto & i: seq) {
         if (i >= 65 && i <= 90) continue;
         i = i ^ 0x20;

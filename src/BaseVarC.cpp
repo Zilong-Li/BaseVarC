@@ -253,9 +253,7 @@ void runBaseType(int argc, char **argv)
         // skip coverage==0
         if (aiv.size() > 0) {
             // here call BaseType
-            std::cerr << p << "\t" << seq[p - rg_s] << std::endl;
             ref_base = BASE_INT8_TABLE[seq[p - rg_s]];
-            ss << p << "\t" << ref_base << "\t";
             for (auto const& a: aiv) {
                 ss << a.base;
                 bases.push_back(a.base);

@@ -93,7 +93,7 @@ bool BaseType::LRT()
     UpdateF(bases, bc, lr_null, bp, bases.size());
     ProbV base_frq = bp[0];
     double lr_alt_t = lr_null[0];
-    double chi_sqrt_t = 0;
+    double chi_sqrt_t = 0.0;
     int32_t n = bases.size();
     int32_t i_min;
     for (int32_t k = n - 1; k > 0; --k) {
@@ -114,6 +114,7 @@ bool BaseType::LRT()
             break;
         }
     }
+    std::cerr << chi_sqrt_t << std::endl;
     for (auto b: bases) {
         if (b != ref_base) {
             alt_bases.push_back(b);
@@ -126,7 +127,12 @@ bool BaseType::LRT()
         if (bases.size() == 1 && depth_total > 10 && r > 0.5) {
             var_qual = 5000.0;  // mono-allelelic
         } else {
-            chi_prob = chisf(chi_sqrt_t, 1.0);
+            if (chi_sqrt_t <= 0) {
+                var_qual = 0.0;
+                return true;
+            }
+            // @FIXME check out the chisf precision
+            chi_prob = chisf(chi_sqrt_t, 1.0);  // may be nan value;
             if (chi_prob) {
                 var_qual = -10 * log10(chi_prob);
             } else {
@@ -202,7 +208,7 @@ void BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8
     char col = ';';
     char tab = '\t';
     std::stringstream out;
-    out << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab << bq << col << ac << col << af << col << caf << col << dp << col << mq << col << rp << col << sb_alt << col << sb_ref << col << sor << tab << sams;
+    out << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab << bq << col << ac << col << af << col << caf << col << dp << col << fs << col << mq << col << rp << col << sb_alt << col << sb_ref << col << sor << tab << sams;
     std::cout << out.str() << std::endl;
 }
 
@@ -245,12 +251,16 @@ void BaseType::stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVe
     s.phred_mapq = -10 * log10(2 * normsf(abs(z_mapq)));
     s.phred_rpr  = -10 * log10(2 * normsf(abs(z_rpr)));
     if (isinf(s.phred_qual)) s.phred_qual = 10000.0;
+    else if (!(s.phred_qual != 0)) s.phred_qual = 0.0;
     if (isinf(s.phred_mapq)) s.phred_mapq = 10000.0;
+    else if (!(s.phred_mapq != 0)) s.phred_mapq = 0.0;
     if (isinf(s.phred_rpr)) s.phred_rpr = 10000.0;
+    else if (!(s.phred_rpr != 0)) s.phred_rpr = 0.0;
     double left_p, right_p, twoside_p;
     kt_fisher_exact(s.ref_fwd, s.ref_rev, s.alt_fwd, s.alt_rev, &left_p, &right_p, &twoside_p);
     s.fs = -10 * log10(twoside_p);
     if (isinf(s.fs)) s.fs = 10000.0;
+    else if (s.fs == 0) s.fs = 0.0;
     if (s.ref_fwd * s.ref_rev > 0) {
         s.sor = static_cast<double>(s.ref_fwd * s.alt_fwd) / (s.ref_rev * s.alt_rev);
     } else {
