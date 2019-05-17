@@ -5,14 +5,6 @@
 #include "ranksum.h"
 #include "em.h"
 #include "htslib/kfunc.h"
-#include "htslib/bgzf.h"
-
-typedef std::vector<double> ProbV;
-typedef std::vector<ProbV> FreqV;
-typedef std::vector<int8_t> BaseV;
-typedef std::vector<BaseV> CombV;
-typedef std::unordered_map<int32_t, int32_t> DepM;
-typedef std::string String;
 
 static const char STRAND[2] = {'-', '+'};
 static const char BASE2CHAR[4] = {'A', 'C', 'G', 'T'};

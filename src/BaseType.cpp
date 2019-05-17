@@ -147,18 +147,20 @@ bool BaseType::LRT()
     return false;
 }
 
-void BaseType::WriteVcf(BGZF* fp, const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, int32_t N)
+void BaseType::WriteVcf(BGZF* fpc, BGZF* fpv, const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, int32_t N)
 {
+    char col = ';';
+    char tab = '\t';
     std::unordered_map<uint8_t, String> alt_gt;
     String gt;
     for (size_t i = 0; i < bt.alt_bases.size(); ++i) {
         gt = "./" + std::to_string(i + 1);
         alt_gt.insert({bt.alt_bases[i], gt});
     }
-    String sams = "";
+    String samgt = "";
     for (int32_t i = 0; i < N; ++i) {
         if (idx.count(i) == 0) {
-            sams += "./.\t";
+            samgt += "./.\t";
         } else {
             auto const& a = aiv[idx.at(i)];
             if (alt_gt.count(a.base) == 0) alt_gt.insert({a.base, "./."});
@@ -167,7 +169,7 @@ void BaseType::WriteVcf(BGZF* fp, const BaseType& bt, const String& chr, int32_t
             } else {
                 gt = alt_gt[a.base];
             }
-            sams += gt + ":" + BASE2CHAR[a.base] + ":" + STRAND[a.strand] + ":" + std::to_string(1 - exp(MLN10TO10 * a.qual)) + "\t";
+            samgt += gt + ":" + BASE2CHAR[a.base] + ":" + STRAND[a.strand] + ":" + std::to_string(1 - exp(MLN10TO10 * a.qual)) + "\t";
         }
     }
     Stat st;
@@ -188,7 +190,7 @@ void BaseType::WriteVcf(BGZF* fp, const BaseType& bt, const String& chr, int32_t
     af.pop_back();
     caf.pop_back();
     alt.pop_back();
-    sams.pop_back();
+    samgt.pop_back();
     String qd = "QD=" + std::to_string(bt.var_qual/ad_sum);
     String dp = "CM_DP=" + std::to_string(static_cast<int>(bt.depth_total));
     String mq = "MQRankSum=" + std::to_string(st.phred_mapq);
@@ -204,12 +206,10 @@ void BaseType::WriteVcf(BGZF* fp, const BaseType& bt, const String& chr, int32_t
     } else {
         qt = "LowQual";
     }
-    char col = ';';
-    char tab = '\t';
     std::stringstream sout;
-    sout << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab << bq << col << ac << col << af << col << caf << col << dp << col << fs << col << mq << col << rp << col << sb_alt << col << sb_ref << col << sor << tab << sams << "\n";
+    sout << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab << bq << col << ac << col << af << col << caf << col << dp << col << fs << col << mq << col << rp << col << sb_alt << col << sb_ref << col << sor << tab << samgt << "\n";
     String out = sout.str();
-    if (bgzf_write(fp, out.c_str(), out.length()) != out.length()) {
+    if (bgzf_write(fpv, out.c_str(), out.length()) != out.length()) {
     	std::cerr << "failed to write" << std::endl;
     	exit(EXIT_FAILURE);
     }

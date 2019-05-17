@@ -18,7 +18,8 @@ static const char* BASEVARC_USAGE_MESSAGE =
 "Commands:\n"
 "           basetype       Variants Caller\n"
 "           popmatrix      Create population matrix at specific positions.\n" 
-"           concat          Concat popmatrix.\n" 
+"           concat         Concat popmatrix.\n" 
+"           merge          Merge vcf/cvg files.\n" 
 "\nReport bugs to lizilong@bgi.com \n\n";
 
 static const char* BASETYPE_MESSAGE = 
@@ -27,7 +28,7 @@ static const char* BASETYPE_MESSAGE =
 "Usage  : BaseVarC basetype [options]\n\n"
 "Commands:\n"
 "  --input,      -l        BAM/CRAM files list, one file per row.\n"
-"  --output,     -o        Output path(default stdout)\n"
+"  --output,     -o        Output filename prefix\n"
 "  --reference,  -r        Reference file\n"
 "  --region,     -g        Samtools-like region\n"
 "  --mapq,       -q <INT>  Mapping quality >= INT. [10]\n"
@@ -41,7 +42,7 @@ static const char* POPMATRIX_MESSAGE =
 "Commands:\n"
 "  --input,      -l        BAM/CRAM files list, one file per row.\n"
 "  --posfile,    -p        Position file <CHRID POS REF ALT>\n"
-"  --output,     -o        Output path(default stdout)\n"
+"  --output,     -o        Output filename prefix(.mat.gz will be added auto)\n"
 "  --mapq,       -q <INT>  Mapping quality >= INT. [10]\n"
 "  --verbose,    -v        Set verbose output\n"
 "\nReport bugs to lizilong@bgi.com \n\n";
@@ -51,8 +52,8 @@ static const char* CONCAT_MESSAGE =
 "Contact: Zilong Li [lizilong@bgi.com]\n"
 "Usage  : BaseVarC concat [options]\n\n"
 "Commands:\n"
-"  --input,      -l       list of matrix files for concat, one file per row.\n"
-"  --output,     -o       output path (will be added suffix .gz at the end)\n"
+"  --input,      -l       List of matrix files for concat, one file per row.\n"
+"  --output,     -o       Output filename prefix(.gz will be added auto)\n"
 "\nReport bugs to lizilong@bgi.com \n\n";
 
 typedef std::vector<int32_t> IntV;
@@ -214,7 +215,7 @@ void runBaseType(int argc, char **argv)
     int32_t count = 0;
     const int32_t N = bams.size();
     std::vector<PosAlleleMap> allele_mv;
-    std::unordered_map<int32_t, String> sm_m;
+    String headvcf = String(VCF_HEADER) + "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
     for (int32_t i = 0; i < N; ++i) {
         BamProcess reader;
         if (!(++count % 1000)) std::cerr << "Processing the number " << count / 1000 << "k bam" << std::endl;
@@ -225,12 +226,13 @@ void runBaseType(int argc, char **argv)
         if (!reader.FindSnpAtPos(opt::region, pv)) {
             std::cerr << "Warning: " << reader.sm << " region " << opt::region << " is empty." << std::endl;
         }
+        headvcf += "\t" + reader.sm;
         allele_mv.push_back(reader.allele_m);
-        sm_m.insert({i, reader.sm});
         if (!reader.Close()) {
             std::cerr << "Warning: could not close file " << bams[i] << std::endl;
         }
     }
+    headvcf += "\n";
     assert(allele_mv.size() == N);
     std::stringstream ss;
     int8_t ref_base;
@@ -239,8 +241,19 @@ void runBaseType(int argc, char **argv)
     AlleleInfoVector aiv;
     DepM idx;
     int32_t j;
-    String vcfout = opt::output;
-    BGZF* fp = bgzf_open(vcfout.c_str(), "w");
+    String vcfout = opt::output + ".vcf.gz";
+    String cvgout = opt::output + ".cvg.gz";
+    String headcvg = String(CVG_HEADER);
+    BGZF* fpv = bgzf_open(vcfout.c_str(), "w");
+    BGZF* fpc = bgzf_open(cvgout.c_str(), "w");
+    if (bgzf_write(fpc, headcvg.c_str(), headcvg.length()) != headcvg.length()) {
+    	std::cerr << "failed to write" << std::endl;
+    	exit(EXIT_FAILURE);
+    }
+    if (bgzf_write(fpv, headvcf.c_str(), headvcf.length()) != headvcf.length()) {
+    	std::cerr << "failed to write" << std::endl;
+    	exit(EXIT_FAILURE);
+    }
     for (auto const& p: pv) {
         j = 0;
     	for (int32_t i = 0; i < N; ++i) {
@@ -256,7 +269,7 @@ void runBaseType(int argc, char **argv)
         // skip coverage==0
         if (aiv.size() > 0) {
             // here call BaseType
-            ref_base = BASE_INT8_TABLE[seq[p - rg_s]];
+            ref_base = BASE_INT8_TABLE[static_cast<int>(seq[p - rg_s])];
             for (auto const& a: aiv) {
                 ss << a.base;
                 bases.push_back(a.base);
@@ -265,7 +278,7 @@ void runBaseType(int argc, char **argv)
             BaseType bt(bases, quals, ref_base, min_af);
             if (bt.LRT()) {
                 ss << "\t" << bt.alt_bases.size();
-                bt.WriteVcf(fp, bt, chr, p, ref_base, aiv, idx, N);
+                bt.WriteVcf(fpc, fpv, bt, chr, p, ref_base, aiv, idx, N);
             }
             bases.clear();
             quals.clear();
@@ -274,7 +287,8 @@ void runBaseType(int argc, char **argv)
         aiv.clear();
         idx.clear();
     }
-    if (bgzf_close(fp) < 0) std::cerr << "failed to close \n";
+    if (bgzf_close(fpc) < 0) std::cerr << "failed to close \n";
+    if (bgzf_close(fpv) < 0) std::cerr << "failed to close \n";
     std::cerr << ss.str() << std::endl;
     std::cerr << "basetype done" << std::endl;
 }
