@@ -224,6 +224,9 @@ void runBaseType(int argc, char **argv)
         }
         reader.FindSnpAtPos(opt::region, pv);
         // @FIXME make sure allele_m is initialized.
+        if (reader.allele_m.empty()) {
+            std::cerr << "empty\n";
+        }
         allele_mv.push_back(reader.allele_m);
         sm_m.insert({i, reader.sm});
         if (!reader.Close()) {

@@ -114,7 +114,6 @@ bool BaseType::LRT()
             break;
         }
     }
-    std::cerr << chi_sqrt_t << std::endl;
     for (auto b: bases) {
         if (b != ref_base) {
             alt_bases.push_back(b);

@@ -1,6 +1,6 @@
 #include "BamProcess.h"
 
-void BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>& pv)
+bool BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>& pv)
 {
     // check if the BAM is sorted
     std::string hh = Header().AsString(); //std::string(header()->text)
@@ -20,7 +20,11 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
     	exit(EXIT_FAILURE);
     }
     SeqLib::GenomicRegion gr(rg, Header());
-    SetRegion(gr);
+    if (!SetRegion(gr)) {
+        // SetRegion always be true, which is weird
+    	std::cerr << sm << ": region " << rg << " is empty." << std::endl;
+        return false;
+    }
     gr.Pad(1000);
     SeqLib::BamRecord r;
     // filter reads here
@@ -29,6 +33,8 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
         if (r.MapQuality() < mapq) continue;
         rv.push_back(r);
     }
+    // check again;
+    if (rv.empty()) return false;
     bool flag = false;
     uint32_t i = 0, j = 0;
     r = rv[i];
@@ -78,6 +84,7 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
             j = i;
         }
     }
+    return true;
 }
 
 void BamProcess::FindSnpAtPos(const std::string& rg, const PosInfoVector& pv)
@@ -100,52 +107,58 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const PosInfoVector& pv)
         if (r.MapQuality() < mapq) continue;
         rv.push_back(r);
     }
-    bool flag = false;
-    uint32_t  i = 0, j = 0;
-    r = rv[i];
-    snps.reserve(pv.size());       // best practice;
-    const std::string SKIP = "DPN";
-    for (auto const& s: pv) {
-        /* select the first record covering this position */
-        if (s.pos < r.Position() + 1) { // make 1-based
+    if (rv.empty()) {
+        for (size_t i = 0; i < pv.size(); ++i) {
             snps.push_back('.');
-        }else{
-            // r.PositionEnd is 1-based
-            while (s.pos > r.PositionEnd()) {
-                if (i == rv.size() - 1) {flag = true; break;}
-                j = ++i;
-                r = rv[i];
-            }
-            // find the proper read here
-            while (true) {
-                SeqLib::Cigar c = r.GetCigar();
-                int track = r.Position();
-                bool fail = false;
-                for (auto const& cf: c) {
-                    auto t = cf.Type();
-                    if (t == 'H' || t == 'S') continue;
-                    if (t != 'I') track += cf.Length();
-                    // skip read if position locus at a SKIP cigar field;
-                    if (track >= s.pos) {
-                        if (SKIP.find(t) != std::string::npos) fail = true;
+        }
+    } else {
+        bool flag = false;
+        uint32_t  i = 0, j = 0;
+        r = rv[i];
+        snps.reserve(pv.size());       // best practice;
+        const std::string SKIP = "DPN";
+        for (auto const& s: pv) {
+            /* select the first record covering this position */
+            if (s.pos < r.Position() + 1) { // make 1-based
+                snps.push_back('.');
+            }else{
+                // r.PositionEnd is 1-based
+                while (s.pos > r.PositionEnd()) {
+                    if (i == rv.size() - 1) {flag = true; break;}
+                    j = ++i;
+                    r = rv[i];
+                }
+                // find the proper read here
+                while (true) {
+                    SeqLib::Cigar c = r.GetCigar();
+                    int track = r.Position();
+                    bool fail = false;
+                    for (auto const& cf: c) {
+                        auto t = cf.Type();
+                        if (t == 'H' || t == 'S') continue;
+                        if (t != 'I') track += cf.Length();
+                        // skip read if position locus at a SKIP cigar field;
+                        if (track >= s.pos) {
+                            if (SKIP.find(t) != std::string::npos) fail = true;
+                            break;
+                        }
+                    }
+                    if (fail && j < rv.size() - 1) {
+                        r = rv[++j];
+                        if (s.pos < r.Position() + 1) break;
+                    } else {
                         break;
                     }
                 }
-                if (fail && j < rv.size() - 1) {
-                    r = rv[++j];
-                    if (s.pos < r.Position() + 1) break;
+                // now we pick this read.
+                if (s.pos < r.Position() + 1 || flag) {
+                    snps.push_back('.');
                 } else {
-                    break;
+                    snps.push_back(GetSnpCode(r, s));
                 }
+                r = rv[i];     // all back to index i
+                j = i;
             }
-            // now we pick this read.
-            if (s.pos < r.Position() + 1 || flag) {
-                snps.push_back('.');
-            } else {
-                snps.push_back(GetSnpCode(r, s));
-            }
-            r = rv[i];     // all back to index i
-            j = i;
         }
     }
 }
