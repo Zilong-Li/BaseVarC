@@ -240,7 +240,6 @@ void runBaseType(int argc, char **argv)
     BaseV bases, quals;
     AlleleInfoVector aiv;
     DepM idx;
-    int32_t j;
     String vcfout = opt::output + ".vcf.gz";
     String cvgout = opt::output + ".cvg.gz";
     String headcvg = String(CVG_HEADER);
@@ -254,6 +253,15 @@ void runBaseType(int argc, char **argv)
     	std::cerr << "failed to write" << std::endl;
     	exit(EXIT_FAILURE);
     }
+    char col = ';';
+    char tab = '\t';
+    int8_t alt_base;
+    int32_t j, na, nc, ng, nt, ref_fwd, ref_rev, alt_fwd, alt_rev;
+    double fs, sor, left_p, right_p, twoside_p;
+    std::vector<int32_t> tmp;
+    std::stringstream sout;
+    sout.precision(3);
+    String out;
     for (auto const& p: pv) {
         j = 0;
     	for (int32_t i = 0; i < N; ++i) {
@@ -270,15 +278,70 @@ void runBaseType(int argc, char **argv)
         if (aiv.size() > 0) {
             // here call BaseType
             ref_base = BASE_INT8_TABLE[static_cast<int>(seq[p - rg_s])];
+            na = 0, nc = 0, ng = 0, nt = 0;
             for (auto const& a: aiv) {
                 ss << a.base;
+                switch (a.base) {
+                case 0 : na += 1; break;
+                case 1 : nc += 1; break;
+                case 2 : ng += 1; break;
+                case 3 : nt += 1; break;
+                }
                 bases.push_back(a.base);
                 quals.push_back(a.qual);
             }
+            // output cvg;
+            tmp = {na, nc, ng, nt};
+            std::sort(tmp.begin(), tmp.end(), std::greater<int>());
+            if (tmp[0] != ref_base) {
+                if (tmp[0] == na) alt_base = 0;
+                if (tmp[0] == nc) alt_base = 1;
+                if (tmp[0] == ng) alt_base = 2;
+                if (tmp[0] == nt) alt_base = 3;
+            } else{
+                if (tmp[1] == na) alt_base = 0;
+                if (tmp[1] == nc) alt_base = 1;
+                if (tmp[1] == ng) alt_base = 2;
+                if (tmp[1] == nt) alt_base = 3;
+            }
+            ref_fwd = 0, ref_rev = 0, alt_fwd = 0, alt_rev = 0;
+            for (auto const& a: aiv) {
+                if (a.strand == 1) {
+                    if (a.base == ref_base) {
+                        ref_fwd += 1;
+                    } else if (a.base == alt_base) {
+                        alt_fwd += 1;
+                    }
+                } else if (a.strand == 0) {
+                    if (a.base == ref_base) {
+                        ref_rev += 1;
+                    } else if (a.base == alt_base) {
+                        alt_rev += 1;
+                    }
+                }
+            }
+            kt_fisher_exact(ref_fwd, ref_rev, alt_fwd, alt_rev, &left_p, &right_p, &twoside_p);
+            fs = -10 * log10(twoside_p);
+            if (isinf(fs)) fs = 10000.0;
+            else if (fs == 0) fs = 0.0;
+            if (alt_fwd * ref_rev > 0) {
+                sor = static_cast<double>(ref_fwd * alt_rev) / (ref_rev * alt_fwd);
+            } else {
+                sor = 10000.0;
+            }
+            sout << chr << tab << p << tab << BASE2CHAR[ref_base] << tab << aiv.size() << tab << na << tab << nc << tab << ng << tab << nt << tab << fs << tab << sor << tab << ref_fwd << col << ref_rev << col << alt_fwd << col << alt_rev << "\n";
+            out = sout.str();
+            sout.str("");
+            sout.clear();
+            if (bgzf_write(fpc, out.c_str(), out.length()) != out.length()) {
+                std::cerr << "failed to write" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            // basetype caller;
             BaseType bt(bases, quals, ref_base, min_af);
             if (bt.LRT()) {
                 ss << "\t" << bt.alt_bases.size();
-                bt.WriteVcf(fpc, fpv, bt, chr, p, ref_base, aiv, idx, N);
+                bt.WriteVcf(fpv, bt, chr, p, ref_base, aiv, idx, N);
             }
             bases.clear();
             quals.clear();

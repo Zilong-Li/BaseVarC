@@ -147,7 +147,7 @@ bool BaseType::LRT()
     return false;
 }
 
-void BaseType::WriteVcf(BGZF* fpc, BGZF* fpv, const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, int32_t N)
+void BaseType::WriteVcf(BGZF* fpv, const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, int32_t N)
 {
     char col = ';';
     char tab = '\t';
@@ -158,18 +158,11 @@ void BaseType::WriteVcf(BGZF* fpc, BGZF* fpv, const BaseType& bt, const String& 
         alt_gt.insert({bt.alt_bases[i], gt});
     }
     String samgt = "";
-    int32_t na = 0, nc = 0, ng = 0, nt = 0;
     for (int32_t i = 0; i < N; ++i) {
         if (idx.count(i) == 0) {
             samgt += "./.\t";
         } else {
             auto const& a = aiv[idx.at(i)];
-            switch (a.base) {
-            case 0 : na += 1; break;
-            case 1 : nc += 1; break;
-            case 2 : ng += 1; break;
-            case 3 : nt += 1; break;
-            }
             if (alt_gt.count(a.base) == 0) alt_gt.insert({a.base, "./."});
             if (a.base == ref_base) {
                 gt = "0/.";
@@ -214,17 +207,10 @@ void BaseType::WriteVcf(BGZF* fpc, BGZF* fpv, const BaseType& bt, const String& 
         qt = "LowQual";
     }
     std::stringstream sout;
+    sout.precision(3);
     sout << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab << bq << col << ac << col << af << col << caf << col << dp << col << fs << col << mq << col << rp << col << sb_alt << col << sb_ref << col << sor << tab << samgt << "\n";
     String out = sout.str();
     if (bgzf_write(fpv, out.c_str(), out.length()) != out.length()) {
-    	std::cerr << "failed to write" << std::endl;
-    	exit(EXIT_FAILURE);
-    }
-    sout.str("");
-    sout.clear();
-    sout << chr << tab << pos << tab << BASE2CHAR[ref_base] << tab << bt.depth_total << tab << na << tab << nc << tab << ng << tab << nt << tab << st.fs << tab << st.sor << tab << st.ref_fwd << col << st.ref_rev << col << st.alt_fwd << col << st.alt_rev << "\n";
-    out = sout.str();
-    if (bgzf_write(fpc, out.c_str(), out.length()) != out.length()) {
     	std::cerr << "failed to write" << std::endl;
     	exit(EXIT_FAILURE);
     }
@@ -279,8 +265,8 @@ void BaseType::stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVe
     s.fs = -10 * log10(twoside_p);
     if (isinf(s.fs)) s.fs = 10000.0;
     else if (s.fs == 0) s.fs = 0.0;
-    if (s.ref_fwd * s.ref_rev > 0) {
-        s.sor = static_cast<double>(s.ref_fwd * s.alt_fwd) / (s.ref_rev * s.alt_rev);
+    if (s.alt_fwd * s.ref_rev > 0) {
+        s.sor = static_cast<double>(s.ref_fwd * s.alt_rev) / (s.ref_rev * s.alt_fwd);
     } else {
         s.sor = 10000.0;
     }

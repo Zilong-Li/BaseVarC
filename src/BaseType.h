@@ -58,7 +58,7 @@ class BaseType
         delete []init_allele_freq;
     }
     bool LRT();
-    void WriteVcf(BGZF* fpc, BGZF* fpv, const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, int32_t N);
+    void WriteVcf(BGZF* fpv, const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, int32_t N);
 
     double var_qual;
     BaseV alt_bases;
