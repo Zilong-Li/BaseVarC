@@ -56,6 +56,31 @@ static const char* CONCAT_MESSAGE =
 "  --output,     -o       Output filename prefix(.gz will be added auto)\n"
 "\nReport bugs to lizilong@bgi.com \n\n";
 
+static const char* CVG_HEADER =
+"##fileformat=CVGv1.0\n"
+"##Group information is the depth of A:C:G:T\n"
+"#CHROM\tPOS\tREF\tDepth\tA\tC\tG\tT\tFS\tSOR\tStrand_Coverage(REF_FWD,REF_REV,ALT_FWD,ALT_REV)\n";
+
+static const char* VCF_HEADER =
+"##fileformat=VCFv4.2\n"
+"##FILTER=<ID=LowQual,Description=\"Low quality (QUAL < 60)\">\n"
+"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n"
+"##FORMAT=<ID=AB,Number=1,Type=String,Description=\"Allele Base\">\n"
+"##FORMAT=<ID=SO,Number=1,Type=String,Description=\"Strand orientation of the mapping base. Marked as + or -\">\n"
+"##FORMAT=<ID=BP,Number=1,Type=String,Description=\"Base Probability which calculate by base quality\">\n"
+"##INFO=<ID=CM_AF,Number=A,Type=Float,Description=\"An ordered, comma delimited list of allele frequencies base on LRT algorithm\">\n"
+"##INFO=<ID=CM_CAF,Number=A,Type=Float,Description=\"An ordered, comma delimited list of allele frequencies just base on read count\">\n"
+"##INFO=<ID=CM_AC,Number=A,Type=Integer,Description=\"An ordered, comma delimited allele depth in CMDB\">\n"
+"##INFO=<ID=CM_DP,Number=A,Type=Integer,Description=\"Total Depth\">\n"
+"##INFO=<ID=SB_REF,Number=A,Type=Integer,Description=\"Read number support REF: Forward,Reverse\">\n"
+"##INFO=<ID=SB_ALT,Number=A,Type=Integer,Description=\"Read number support ALT: Forward,Reverse\">\n"
+"##INFO=<ID=FS,Number=1,Type=Float,Description=\"Phred-scaled p-value using Fisher's exact test to detect strand bias\">\n"
+"##INFO=<ID=BaseQRankSum,Number=1,Type=Float,Description=\"Phred-score from Wilcoxon rank sum test of Alt Vs. Ref base qualities\">\n"
+"##INFO=<ID=SOR,Number=1,Type=Float,Description=\"Symmetric Odds Ratio of 2x2 contingency table to detect strand bias\">\n"
+"##INFO=<ID=MQRankSum,Number=1,Type=Float,Description=\"Phred-score From Wilcoxon rank sum test of Alt vs. Ref read mapping qualities\">\n"
+"##INFO=<ID=ReadPosRankSum,Number=1,Type=Float,Description=\"Phred-score from Wilcoxon rank sum test of Alt vs. Ref read position bias\">\n"
+"##INFO=<ID=QD,Number=1,Type=Float,Description=\"Variant Confidence Quality by Depth\">\n";
+
 typedef std::vector<int32_t> IntV;
 typedef std::string String;
 
@@ -146,9 +171,9 @@ void runConcat(int argc, char **argv)
             } else {
                 n = std::stol(tokens[0]);
                 m = std::stol(tokens[1]);
+                mt += m;
             }
         }
-        mt += m;
         count = 0;
         Drg.reserve(n);
         while (bgzf_getline(fp, '\n', &ks) >= 0) {
@@ -234,7 +259,6 @@ void runBaseType(int argc, char **argv)
     }
     headvcf += "\n";
     assert(allele_mv.size() == N);
-    std::stringstream ss;
     int8_t ref_base;
     double min_af = 0.001;
     BaseV bases, quals;
@@ -280,7 +304,6 @@ void runBaseType(int argc, char **argv)
             ref_base = BASE_INT8_TABLE[static_cast<int>(seq[p - rg_s])];
             na = 0, nc = 0, ng = 0, nt = 0;
             for (auto const& a: aiv) {
-                ss << a.base;
                 switch (a.base) {
                 case 0 : na += 1; break;
                 case 1 : nc += 1; break;
@@ -295,14 +318,14 @@ void runBaseType(int argc, char **argv)
             std::sort(tmp.begin(), tmp.end(), std::greater<int>());
             if (tmp[0] != ref_base) {
                 if (tmp[0] == na) alt_base = 0;
-                if (tmp[0] == nc) alt_base = 1;
-                if (tmp[0] == ng) alt_base = 2;
-                if (tmp[0] == nt) alt_base = 3;
+                else if (tmp[0] == nc) alt_base = 1;
+                else if (tmp[0] == ng) alt_base = 2;
+                else alt_base = 3;
             } else{
                 if (tmp[1] == na) alt_base = 0;
-                if (tmp[1] == nc) alt_base = 1;
-                if (tmp[1] == ng) alt_base = 2;
-                if (tmp[1] == nt) alt_base = 3;
+                else if (tmp[1] == nc) alt_base = 1;
+                else if (tmp[1] == ng) alt_base = 2;
+                else alt_base = 3;
             }
             ref_fwd = 0, ref_rev = 0, alt_fwd = 0, alt_rev = 0;
             for (auto const& a: aiv) {
@@ -340,19 +363,16 @@ void runBaseType(int argc, char **argv)
             // basetype caller;
             BaseType bt(bases, quals, ref_base, min_af);
             if (bt.LRT()) {
-                ss << "\t" << bt.alt_bases.size();
                 bt.WriteVcf(fpv, bt, chr, p, ref_base, aiv, idx, N);
             }
             bases.clear();
             quals.clear();
-            ss << "\n";
         }
         aiv.clear();
         idx.clear();
     }
     if (bgzf_close(fpc) < 0) std::cerr << "failed to close \n";
     if (bgzf_close(fpv) < 0) std::cerr << "failed to close \n";
-    std::cerr << ss.str() << std::endl;
     std::cerr << "basetype done" << std::endl;
 }
 
