@@ -224,6 +224,7 @@ void runBaseType(int argc, char **argv)
 {
     parseOptions(argc, argv, BASETYPE_MESSAGE);
     std::cerr << "basetype start" << std::endl;
+    clock_t ctb = clock();
     std::ifstream ibam(opt::input);
     std::vector<String> bams(std::istream_iterator<BaseVar::Line>{ibam},
     	                          std::istream_iterator<BaseVar::Line>{});
@@ -373,6 +374,8 @@ void runBaseType(int argc, char **argv)
     }
     if (bgzf_close(fpc) < 0) std::cerr << "failed to close \n";
     if (bgzf_close(fpv) < 0) std::cerr << "failed to close \n";
+    clock_t cte = clock();
+    double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
     std::cerr << "basetype done" << std::endl;
 }
 
