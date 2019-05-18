@@ -260,7 +260,7 @@ void runBaseType(int argc, char **argv)
     double fs, sor, left_p, right_p, twoside_p;
     std::vector<int32_t> tmp;
     std::stringstream sout;
-    sout.precision(3);
+    // sout.precision(3) dosen't work.
     String out;
     for (auto const& p: pv) {
         j = 0;

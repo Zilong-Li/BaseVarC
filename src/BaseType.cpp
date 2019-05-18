@@ -207,7 +207,6 @@ void BaseType::WriteVcf(BGZF* fpv, const BaseType& bt, const String& chr, int32_
         qt = "LowQual";
     }
     std::stringstream sout;
-    sout.precision(3);
     sout << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab << bq << col << ac << col << af << col << caf << col << dp << col << fs << col << mq << col << rp << col << sb_alt << col << sb_ref << col << sor << tab << samgt << "\n";
     String out = sout.str();
     if (bgzf_write(fpv, out.c_str(), out.length()) != out.length()) {
