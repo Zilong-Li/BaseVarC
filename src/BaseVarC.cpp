@@ -241,6 +241,7 @@ void runBaseType(int argc, char **argv)
     int32_t count = 0;
     const int32_t N = bams.size();
     std::vector<PosAlleleMap> allele_mv;
+    allele_mv.reserve(N);
     String headvcf = String(VCF_HEADER) + "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
     for (int32_t i = 0; i < N; ++i) {
         BamProcess reader;
@@ -260,6 +261,7 @@ void runBaseType(int argc, char **argv)
     }
     headvcf += "\n";
     assert(allele_mv.size() == N);
+    allele_mv.shrink_to_fit();
     int8_t ref_base;
     double min_af = 0.001;
     BaseV bases, quals;
