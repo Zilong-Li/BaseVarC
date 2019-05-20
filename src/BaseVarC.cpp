@@ -10,6 +10,7 @@
 #include "RefReader.h"
 #include "BamProcess.h"
 #include "BaseType.h"
+#include "ThreadPool.h"
 
 static const char* BASEVARC_USAGE_MESSAGE = 
 "Program: BaseVarC -- A c version of BaseVar\n"
@@ -87,8 +88,8 @@ typedef std::string String;
 void runBaseType(int argc, char **argv);
 void runPopMatrix(int argc, char **argv);
 void runConcat(int argc, char **argv);
+bool basetype(BGZF* fpc, BGZF* fpv, const IntV& pv, const std::vector<PosAlleleMap>& allele_mv, int32_t N, const String& chr, int32_t rg_s, const String& seq);
 void parseOptions(int argc, char **argv, const char* msg);
-
 namespace opt {
     static bool verbose = false;
     static int mapq;
@@ -184,14 +185,12 @@ void runConcat(int argc, char **argv)
             std::cerr << "error: the number of samples dont match the header!" << std::endl;
             exit(EXIT_FAILURE);
         }
-        Drg.shrink_to_fit();
         D.push_back(Drg);
         Drg.clear();
         if (bgzf_close(fp) < 0) {
             std::cerr << "warning: file cannot be closed!" << std::endl;
         }
     }
-    D.shrink_to_fit();
 
     fp = bgzf_open(fo.c_str(), "w");
     ss = std::to_string(n) + "\t" + std::to_string(mt) + "\n";
@@ -242,6 +241,7 @@ void runBaseType(int argc, char **argv)
     const int32_t N = bams.size();
     std::vector<PosAlleleMap> allele_mv;
     allele_mv.reserve(N);
+    String headcvg = String(CVG_HEADER);
     String headvcf = String(VCF_HEADER) + "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
     for (int32_t i = 0; i < N; ++i) {
         BamProcess reader;
@@ -261,46 +261,77 @@ void runBaseType(int argc, char **argv)
     }
     headvcf += "\n";
     assert(allele_mv.size() == N);
-    allele_mv.shrink_to_fit();
-    int8_t ref_base;
+    int nt = 2;
+    ThreadPool pool(nt);
+    std::vector<BGZF *> fpvv;
+    std::vector<BGZF *> fpcv;
+    for (int i = 0; i < nt; ++i) {
+        String vcfout = opt::output + std::to_string(i) + ".vcf.gz";
+        String cvgout = opt::output + std::to_string(i) + ".cvg.gz";
+        BGZF* fpv = bgzf_open(vcfout.c_str(), "w");
+        BGZF* fpc = bgzf_open(cvgout.c_str(), "w");
+        if (bgzf_write(fpc, headcvg.c_str(), headcvg.length()) != headcvg.length()) {
+            std::cerr << "failed to write" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        if (bgzf_write(fpv, headvcf.c_str(), headvcf.length()) != headvcf.length()) {
+            std::cerr << "failed to write" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        fpvv.push_back(fpv);
+        fpcv.push_back(fpc);
+    }
+    std::vector<std::future<bool>> res(nt);
+    int step = pv.size() / nt;
+    std::vector<IntV> pp;
+    for (int i = 0; i < nt; ++i) {
+        if (i == nt - 1){
+            IntV t(pv.begin() + i * step, pv.end());
+            pp.push_back(t);
+        } else {
+            IntV t(pv.begin() + i * step, pv.begin() + (i + 1)*step);
+            pp.push_back(t);
+        }
+    }
+    pv.clear();
+    for (int i = 0; i < nt; ++i) {
+        res[i] = pool.enqueue(basetype, fpcv[i], fpvv[i], std::cref(pp[i]), std::cref(allele_mv), N, std::cref(chr), rg_s, std::cref(seq));
+        if (res[i].get()) {
+            if (bgzf_close(fpvv[i]) < 0) std::cerr << "failed to close \n";
+            if (bgzf_close(fpcv[i]) < 0) std::cerr << "failed to close \n";
+        }
+    }
+    clock_t cte = clock();
+    double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
+    std::cerr << "basetype done" << std::endl;
+}
+
+bool basetype(BGZF* fpc, BGZF* fpv, const IntV& pv, const std::vector<PosAlleleMap>& allele_mv, int32_t N, const String& chr, int32_t rg_s, const String& seq)
+{
+    char col = ';';
+    char tab = '\t';
+    int8_t alt_base, ref_base;
+    int32_t j = 0, na, nc, ng, nt, ref_fwd, ref_rev, alt_fwd, alt_rev;
+    double fs, sor, left_p, right_p, twoside_p;
     double min_af = 0.001;
     BaseV bases, quals;
     AlleleInfoVector aiv;
     DepM idx;
-    String vcfout = opt::output + ".vcf.gz";
-    String cvgout = opt::output + ".cvg.gz";
-    String headcvg = String(CVG_HEADER);
-    BGZF* fpv = bgzf_open(vcfout.c_str(), "w");
-    BGZF* fpc = bgzf_open(cvgout.c_str(), "w");
-    if (bgzf_write(fpc, headcvg.c_str(), headcvg.length()) != headcvg.length()) {
-    	std::cerr << "failed to write" << std::endl;
-    	exit(EXIT_FAILURE);
-    }
-    if (bgzf_write(fpv, headvcf.c_str(), headvcf.length()) != headvcf.length()) {
-    	std::cerr << "failed to write" << std::endl;
-    	exit(EXIT_FAILURE);
-    }
-    char col = ';';
-    char tab = '\t';
-    int8_t alt_base;
-    int32_t j, na, nc, ng, nt, ref_fwd, ref_rev, alt_fwd, alt_rev;
-    double fs, sor, left_p, right_p, twoside_p;
-    std::vector<int32_t> tmp;
+    IntV tmp;
     std::stringstream sout;
     // sout.precision(3) dosen't work.
     String out;
-    for (auto const& p: pv) {
-        j = 0;
-    	for (int32_t i = 0; i < N; ++i) {
+    for (auto const& p : pv) {
+        for (int32_t i = 0; i < N; ++i) {
             auto& m = allele_mv[i];
-    	    if (m.count(p) == 0) {
+            if (m.count(p) == 0) {
                 continue;
-    	    } else if (m[p].base != 4) {
+            } else if (m.at(p).base != 4) {
                 // skip N base
-                aiv.push_back(m[p]);
+                aiv.push_back(m.at(p));
                 idx.insert({i, j++});
-    	    }
-    	}
+            }
+        }
         // skip coverage==0
         if (aiv.size() > 0) {
             // here call BaseType
@@ -374,11 +405,7 @@ void runBaseType(int argc, char **argv)
         aiv.clear();
         idx.clear();
     }
-    if (bgzf_close(fpc) < 0) std::cerr << "failed to close \n";
-    if (bgzf_close(fpv) < 0) std::cerr << "failed to close \n";
-    clock_t cte = clock();
-    double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
-    std::cerr << "basetype done" << std::endl;
+    return true;
 }
 
 void runPopMatrix (int argc, char **argv)
