@@ -92,7 +92,7 @@ double kf_erfc(double x)
  * kf_gammaq(s,z)*tgamma(s).
  */
 
-#define KF_GAMMA_EPS 1e-200
+#define KF_GAMMA_EPS 1e-14
 #define KF_TINY 1e-290
 
 // regularized lower incomplete gamma function, by series expansion

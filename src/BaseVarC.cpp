@@ -92,8 +92,8 @@ void runPopMatrix(int argc, char **argv);
 void runConcat(int argc, char **argv);
 void parseOptions(int argc, char **argv, const char* msg);
 
-void basetype(BGZF* fpc, BGZF* fpv, const IntV& pv, const std::vector<PosAlleleMap>& allele_mv, int32_t N, const String& chr, int32_t rg_s, const String& seq);
-void bv_read(const std::vector<String>& bams, PosAlleleMapVec& allele_mv, const String& region, const IntV& pv, String& headvcf);
+void bt_f(std::shared_ptr<std::ofstream>& fpc, std::shared_ptr<std::ofstream>& fpv, const IntV& pv, const std::vector<PosAlleleMap>& allele_mv, int32_t N, const String& chr, int32_t rg_s, const String& seq);
+void bt_read(const std::vector<String>& bams, PosAlleleMapVec& allele_mv, const String& region, const IntV& pv, String& headvcf);
 
 namespace opt {
     static bool verbose = false;
@@ -266,7 +266,7 @@ void runBaseType(int argc, char **argv)
     ThreadPool pool(nt);
     std::vector<std::future<void>> res(nt);
     for (int i = 0; i < nt; ++i) {
-        res[i] = pool.enqueue(bv_read, std::cref(bams_v[i]), std::ref(allele_mv), std::cref(opt::region), std::cref(pv), std::ref(headvcf));
+        res[i] = pool.enqueue(bt_read, std::cref(bams_v[i]), std::ref(allele_mv), std::cref(opt::region), std::cref(pv), std::ref(headvcf));
     }
     for (int i = 0; i < nt; ++i) {
         res[i].get();
@@ -275,26 +275,19 @@ void runBaseType(int argc, char **argv)
 
     headvcf += "\n";
     assert(allele_mv.size() == N);
-    std::vector<BGZF *> fpvv;
-    std::vector<BGZF *> fpcv;
+    std::vector<std::shared_ptr<std::ofstream> > fpvv;
+    std::vector<std::shared_ptr<std::ofstream> > fpcv;
+    // BGZF* fpv = bgzf_open(vcfout.c_str(), "w");
+    // BGZF* fpc = bgzf_open(cvgout.c_str(), "w");
     for (int i = 0; i < nt; ++i) {
-        String vcfout = opt::output + std::to_string(i) + ".vcf.gz";
-        String cvgout = opt::output + std::to_string(i) + ".cvg.gz";
-        BGZF* fpv = bgzf_open(vcfout.c_str(), "w");
-        BGZF* fpc = bgzf_open(cvgout.c_str(), "w");
-        if (bgzf_write(fpc, headcvg.c_str(), headcvg.length()) != headcvg.length()) {
-            std::cerr << "failed to write" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-        if (bgzf_write(fpv, headvcf.c_str(), headvcf.length()) != headvcf.length()) {
-            std::cerr << "failed to write" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-        fpvv.push_back(fpv);
-        fpcv.push_back(fpc);
+        String vcfout = opt::output + ".tmp." + std::to_string(i) + ".vcf";
+        String cvgout = opt::output + ".tmp." + std::to_string(i) + ".cvg";
+        fpvv.push_back(std::make_shared<std::ofstream>(vcfout));
+        fpcv.push_back(std::make_shared<std::ofstream>(cvgout));
     }
     step = pv.size() / nt;
     std::vector<IntV> pp;
+    pp.reserve(nt);
     for (int i = 0; i < nt; ++i) {
         if (i == nt - 1){
             IntV t(pv.begin() + i * step, pv.end());
@@ -306,19 +299,21 @@ void runBaseType(int argc, char **argv)
     }
     pv.clear();
     for (int i = 0; i < nt; ++i) {
-        res[i] = pool.enqueue(basetype, fpcv[i], fpvv[i], std::cref(pp[i]), std::cref(allele_mv), N, std::cref(chr), rg_s, std::cref(seq));
+        res[i] = pool.enqueue(bt_f, std::ref(fpcv[i]), std::ref(fpvv[i]), std::cref(pp[i]), std::cref(allele_mv), N, std::cref(chr), rg_s, std::cref(seq));
     }
     for (int i = 0; i < nt; ++i) {
         res[i].get();
-        if (bgzf_close(fpvv[i]) < 0) std::cerr << "failed to close \n";
-        if (bgzf_close(fpcv[i]) < 0) std::cerr << "failed to close \n";
+        // if (bgzf_close(fpv) < 0) std::cerr << "failed to close \n";
+        // if (bgzf_close(fpc) < 0) std::cerr << "failed to close \n";
     }
+    fpvv.clear();
+    fpcv.clear();
     clock_t cte = clock();
     double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
     std::cerr << "basetype done" << std::endl;
 }
 
-void bv_read(const std::vector<String>& bams, PosAlleleMapVec& allele_mv, const String& region, const IntV& pv, String& headvcf)
+void bt_read(const std::vector<String>& bams, PosAlleleMapVec& allele_mv, const String& region, const IntV& pv, String& headvcf)
 {
     for (int32_t i = 0; i < bams.size(); ++i) {
         BamProcess reader;
@@ -329,7 +324,7 @@ void bv_read(const std::vector<String>& bams, PosAlleleMapVec& allele_mv, const 
         if (!reader.FindSnpAtPos(region, pv)) {
             std::cerr << "Warning: " << reader.sm << " region " << region << " is empty." << std::endl;
         }
-        std::lock_guard<std::mutex> guard(mut);
+        std::unique_lock<std::mutex> guard(mut);
         headvcf += "\t" + reader.sm;
         allele_mv.push_back(reader.allele_m);
         if (!reader.Close()) {
@@ -338,7 +333,7 @@ void bv_read(const std::vector<String>& bams, PosAlleleMapVec& allele_mv, const 
     }
 }
 
-void basetype(BGZF* fpc, BGZF* fpv, const IntV& pv, const std::vector<PosAlleleMap>& allele_mv, int32_t N, const String& chr, int32_t rg_s, const String& seq)
+void bt_f(std::shared_ptr<std::ofstream>& fpc, std::shared_ptr<std::ofstream>& fpv, const IntV& pv, const std::vector<PosAlleleMap>& allele_mv, int32_t N, const String& chr, int32_t rg_s, const String& seq)
 {
     char col = ';';
     char tab = '\t';
@@ -422,14 +417,12 @@ void basetype(BGZF* fpc, BGZF* fpv, const IntV& pv, const std::vector<PosAlleleM
             out = sout.str();
             sout.str("");
             sout.clear();
+            *fpc << out;
             // basetype caller;
             BaseType bt(bases, quals, ref_base, min_af);
             if (bt.LRT()) {
-                bt.WriteVcf(fpv, bt, chr, p, ref_base, aiv, idx, N);
-            }
-            if (bgzf_write(fpc, out.c_str(), out.length()) != out.length()) {
-                std::cerr << "failed to write" << std::endl;
-                exit(EXIT_FAILURE);
+                String outvcf = bt.WriteVcf(bt, chr, p, ref_base, aiv, idx, N);
+                *fpv << outvcf;
             }
             bases.clear();
             quals.clear();
