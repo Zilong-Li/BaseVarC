@@ -235,7 +235,7 @@ void runBaseType(int argc, char **argv)
     clock_t ctb = clock();
     std::ifstream ibam(opt::input);
     std::vector<String> bams(std::istream_iterator<BaseVar::Line>{ibam},
-    	                          std::istream_iterator<BaseVar::Line>{});
+    	                     std::istream_iterator<BaseVar::Line>{});
     RefReader fa;
     String seq = fa.GetTargetBase(opt::region, opt::reference);
     String chr;
@@ -277,11 +277,13 @@ void runBaseType(int argc, char **argv)
     assert(allele_mv.size() == N);
     std::vector<std::shared_ptr<std::ofstream> > fpvv;
     std::vector<std::shared_ptr<std::ofstream> > fpcv;
-    // BGZF* fpv = bgzf_open(vcfout.c_str(), "w");
-    // BGZF* fpc = bgzf_open(cvgout.c_str(), "w");
+    std::vector<String> out_cv;
+    std::vector<String> out_vv;
     for (int i = 0; i < nt; ++i) {
         String vcfout = opt::output + ".tmp." + std::to_string(i) + ".vcf";
         String cvgout = opt::output + ".tmp." + std::to_string(i) + ".cvg";
+        out_vv.push_back(vcfout);
+        out_cv.push_back(cvgout);
         fpvv.push_back(std::make_shared<std::ofstream>(vcfout));
         fpcv.push_back(std::make_shared<std::ofstream>(cvgout));
     }
@@ -303,11 +305,38 @@ void runBaseType(int argc, char **argv)
     }
     for (int i = 0; i < nt; ++i) {
         res[i].get();
-        // if (bgzf_close(fpv) < 0) std::cerr << "failed to close \n";
-        // if (bgzf_close(fpc) < 0) std::cerr << "failed to close \n";
     }
     fpvv.clear();
     fpcv.clear();
+    // merge output files
+    String vcfout = opt::output + ".vcf.gz";
+    String cvgout = opt::output + ".cvg.gz";
+    BGZF* fpv = bgzf_open(vcfout.c_str(), "w");
+    BGZF* fpc = bgzf_open(cvgout.c_str(), "w");
+    String line;
+    for (int i = 0; i < nt; ++i) {
+        std::ifstream fv(out_vv[i]);
+        while (std::getline(fv, line)) {
+            line += "\n";
+            if (bgzf_write(fpv, line.c_str(), line.length()) != line.length()) {
+                std::cerr << "fail to write - exit" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
+        std::remove(out_vv[i].c_str());
+        std::ifstream fc(out_cv[i]);
+        while (std::getline(fc, line)) {
+            line += "\n";
+            if (bgzf_write(fpc, line.c_str(), line.length()) != line.length()) {
+                std::cerr << "fail to write - exit" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
+        std::remove(out_cv[i].c_str());
+    }
+    if (bgzf_close(fpv) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
+    if (bgzf_close(fpc) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
+    // done
     clock_t cte = clock();
     double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
     std::cerr << "basetype done" << std::endl;
@@ -346,7 +375,6 @@ void bt_f(std::shared_ptr<std::ofstream>& fpc, std::shared_ptr<std::ofstream>& f
     DepM idx;
     IntV tmp;
     std::stringstream sout;
-    // sout.precision(3) dosen't work.
     String out;
     for (auto const& p : pv) {
         for (int32_t i = 0; i < N; ++i) {
