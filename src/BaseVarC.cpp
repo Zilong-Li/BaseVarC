@@ -84,6 +84,7 @@ static const char* VCF_HEADER =
 "##INFO=<ID=QD,Number=1,Type=Float,Description=\"Variant Confidence Quality by Depth\">\n";
 
 typedef std::string String;
+typedef std::vector<String> StringV;
 typedef std::vector<int32_t> IntV;
 typedef std::vector<PosAlleleMap> PosAlleleMapVec;
 
@@ -155,23 +156,23 @@ void runConcat(int argc, char **argv)
     String fo = opt::output;
     clock_t ctb = clock();
     std::ifstream ifm(fm);
-    std::vector<std::string> fm_v(std::istream_iterator<BaseVar::Line>{ifm},
-    	                          std::istream_iterator<BaseVar::Line>{});
+    StringV fm_v(std::istream_iterator<BaseVar::Line>{ifm},
+	             std::istream_iterator<BaseVar::Line>{});
     int32_t i, k, m, count, n = 0, mt = 0;
     int32_t nm = fm_v.size();
     BGZF* fp = NULL;
     kstring_t ks;
     ks.s = 0; ks.l = 0; ks.m = 0;
     String ss;
-    std::vector<String> Drg;
-    std::vector<std::vector<String>> D;
+    StringV Drg;
+    std::vector<StringV> D;
     D.reserve(nm);
     for (k = 0; k < nm ; ++k) {
         std::cout << "reading file : " << fm_v[k] << std::endl;
         fp = bgzf_open(fm_v[k].c_str(), "r");
         if (bgzf_getline(fp, '\n', &ks) >= 0) {
             ss = ks.s;
-            std::vector<String> tokens;
+            StringV tokens;
             String token;
             std::istringstream ts(ss);
             while (std::getline(ts, token, '\t')) tokens.push_back(token);
@@ -234,8 +235,8 @@ void runBaseType(int argc, char **argv)
     std::cerr << "basetype start" << std::endl;
     clock_t ctb = clock();
     std::ifstream ibam(opt::input);
-    std::vector<String> bams(std::istream_iterator<BaseVar::Line>{ibam},
-    	                     std::istream_iterator<BaseVar::Line>{});
+    StringV bams(std::istream_iterator<BaseVar::Line>{ibam},
+    	         std::istream_iterator<BaseVar::Line>{});
     RefReader fa;
     String seq = fa.GetTargetBase(opt::region, opt::reference);
     String chr;
@@ -251,13 +252,13 @@ void runBaseType(int argc, char **argv)
     int nt = opt::thread;
     const int32_t N = bams.size();
     int32_t step = N / nt;
-    std::vector<std::vector<String>> bams_v;
+    std::vector<StringV> bams_v;
     for (int i = 0; i < nt; ++i) {
         if (i == nt - 1){
-            std::vector<String> t(bams.begin() + i * step, bams.end());
+            StringV t(bams.begin() + i * step, bams.end());
             bams_v.push_back(t);
         } else {
-            std::vector<String> t(bams.begin() + i * step, bams.begin() + (i + 1)*step);
+            StringV t(bams.begin() + i * step, bams.begin() + (i + 1)*step);
             bams_v.push_back(t);
         }
     }
@@ -277,8 +278,8 @@ void runBaseType(int argc, char **argv)
     assert(allele_mv.size() == N);
     std::vector<std::shared_ptr<std::ofstream> > fpvv;
     std::vector<std::shared_ptr<std::ofstream> > fpcv;
-    std::vector<String> out_cv;
-    std::vector<String> out_vv;
+    StringV out_cv;
+    StringV out_vv;
     for (int i = 0; i < nt; ++i) {
         String vcfout = opt::output + ".tmp." + std::to_string(i) + ".vcf";
         String cvgout = opt::output + ".tmp." + std::to_string(i) + ".cvg";
@@ -472,22 +473,22 @@ void runPopMatrix (int argc, char **argv)
         std::cerr << "bamlist or posifle can not be opend" << std::endl;
         exit(EXIT_FAILURE);
     }
-    std::vector<std::string> bams(std::istream_iterator<BaseVar::Line>{ibam},
-    	                          std::istream_iterator<BaseVar::Line>{});
+    StringV bams(std::istream_iterator<BaseVar::Line>{ibam},
+    	         std::istream_iterator<BaseVar::Line>{});
     PosInfoVector pv;
     for (PosInfo p; ipos >> p;) pv.push_back(p);
     pv.shrink_to_fit();        // request for the excess capacity to be released
 
     const int32_t N = bams.size();
     const int32_t M = pv.size();
-    std::string out = std::to_string(N) + "\t" + std::to_string(M) + "\n";
+    String out = std::to_string(N) + "\t" + std::to_string(M) + "\n";
     BGZF* fp = bgzf_open(opt::output.c_str(), "w");
     if (bgzf_write(fp, out.c_str(), out.length()) != out.length()) {
         std::cerr << "fail to write - exit" << std::endl;
         exit(EXIT_FAILURE);
     }
     // ready for run
-    std::string rg = pv.front() + pv.back();
+    String rg = pv.front() + pv.back();
     int32_t count = 0;
     for (int32_t i = 0; i < N; i++) {
         BamProcess reader;
@@ -497,7 +498,7 @@ void runPopMatrix (int argc, char **argv)
             exit(EXIT_FAILURE);
         }
         reader.FindSnpAtPos(rg, pv);
-        std::string out(reader.snps.begin(), reader.snps.end());
+        String out(reader.snps.begin(), reader.snps.end());
         out += "\n";
         if (bgzf_write(fp, out.c_str(), out.length()) != out.length()) {
             std::cerr << "fail to write - exit" << std::endl;
