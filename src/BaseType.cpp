@@ -206,14 +206,10 @@ String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, in
     } else {
         qt = "LowQual";
     }
-    std::stringstream sout;
+    std::ostringstream sout;
     sout << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab << bq << col << ac << col << af << col << caf << col << dp << col << fs << col << mq << col << rp << col << sb_alt << col << sb_ref << col << sor << tab << samgt << "\n";
     String out = sout.str();
     return out;
-    // if (bgzf_write(fpv, out.c_str(), out.length()) != out.length()) {
-    // 	std::cerr << "failed to write" << std::endl;
-    // 	exit(EXIT_FAILURE);
-    // }
 }
 
 void BaseType::stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVector& aiv, Stat& s)

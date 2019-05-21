@@ -340,11 +340,12 @@ void runBaseType(int argc, char **argv)
     clock_t cte = clock();
     double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
     std::cerr << "basetype done" << std::endl;
+    std::cout << "elapsed secs : " << elapsed_secs << std::endl;
 }
 
 void bt_read(const std::vector<String>& bams, PosAlleleMapVec& allele_mv, const String& region, const IntV& pv, String& headvcf)
 {
-    for (int32_t i = 0; i < bams.size(); ++i) {
+    for (size_t i = 0; i < bams.size(); ++i) {
         BamProcess reader;
         if (!reader.Open(bams[i])) {
             std::cerr << "ERROR: could not open file " << bams[i] << std::endl;
@@ -374,7 +375,7 @@ void bt_f(std::shared_ptr<std::ofstream>& fpc, std::shared_ptr<std::ofstream>& f
     AlleleInfoVector aiv;
     DepM idx;
     IntV tmp;
-    std::stringstream sout;
+    std::ostringstream sout;
     String out;
     for (auto const& p : pv) {
         for (int32_t i = 0; i < N; ++i) {

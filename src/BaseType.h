@@ -5,7 +5,6 @@
 #include <complex>
 #include <sstream>
 #include "Stats.h"
-#include "htslib/bgzf.h"
 
 #define LRT_THRESHOLD 24    // chi-pvalue of 10^-6
 #define MLN10TO10 -0.23025850929940458    // -log(10)/10
