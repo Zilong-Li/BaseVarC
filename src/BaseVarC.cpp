@@ -94,7 +94,7 @@ void runConcat(int argc, char **argv);
 void parseOptions(int argc, char **argv, const char* msg);
 
 void bt_f(std::shared_ptr<std::ofstream>& fpc, std::shared_ptr<std::ofstream>& fpv, const IntV& pv, const std::vector<PosAlleleMap>& allele_mv, int32_t N, const String& chr, int32_t rg_s, const String& seq);
-void bt_read(const std::vector<String>& bams, PosAlleleMapVec& allele_mv, const String& region, const IntV& pv, String& headvcf);
+void bt_read(const std::vector<String>& bams, PosAlleleMapVec& allele_mv, const String& region, const IntV& pv, StringV& names, int32_t start);
 
 namespace opt {
     static bool verbose = false;
@@ -122,7 +122,6 @@ static const struct option longopts[] = {
   { NULL, 0, NULL, 0 }
 };
 
-std::mutex mut;
 
 int main(int argc, char** argv)
 {
@@ -237,6 +236,7 @@ void runBaseType(int argc, char **argv)
     std::ifstream ibam(opt::input);
     StringV bams(std::istream_iterator<BaseVar::Line>{ibam},
     	         std::istream_iterator<BaseVar::Line>{});
+    // fetch ref bases;
     RefReader fa;
     String seq = fa.GetTargetBase(opt::region, opt::reference);
     String chr;
@@ -247,6 +247,7 @@ void runBaseType(int argc, char **argv)
         if (seq[i] == 'N') continue;
         pv.push_back(i + rg_s);       // 1-based
     }
+    // begin to read bams
     String headcvg = String(CVG_HEADER);
     String headvcf = String(VCF_HEADER) + "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
     int nt = opt::thread;
@@ -262,20 +263,28 @@ void runBaseType(int argc, char **argv)
             bams_v.push_back(t);
         }
     }
-    PosAlleleMapVec allele_mv;
-    allele_mv.reserve(N);
+    PosAlleleMapVec allele_mv(N);
+    StringV name_v(N);
     ThreadPool pool(nt);
     std::vector<std::future<void>> res(nt);
+    int32_t p;
     for (int i = 0; i < nt; ++i) {
-        res[i] = pool.enqueue(bt_read, std::cref(bams_v[i]), std::ref(allele_mv), std::cref(opt::region), std::cref(pv), std::ref(headvcf));
+        if (i == 0)
+            p = 0;
+        else
+            p += bams_v[i - 1].size();
+        res[i] = pool.enqueue(bt_read, std::cref(bams_v[i]), std::ref(allele_mv), std::cref(opt::region), std::cref(pv), std::ref(name_v), p);
     }
     for (int i = 0; i < nt; ++i) {
         res[i].get();
     }
     bams_v.clear();
-
+    for (int32_t i = 0; i < N; ++i) {
+        headvcf += "\t" + name_v[i];
+    }
     headvcf += "\n";
     assert(allele_mv.size() == N);
+    // begin to call basetype and output
     std::vector<std::shared_ptr<std::ofstream> > fpvv;
     std::vector<std::shared_ptr<std::ofstream> > fpcv;
     StringV out_cv;
@@ -344,7 +353,7 @@ void runBaseType(int argc, char **argv)
     std::cout << "elapsed secs : " << elapsed_secs << std::endl;
 }
 
-void bt_read(const std::vector<String>& bams, PosAlleleMapVec& allele_mv, const String& region, const IntV& pv, String& headvcf)
+void bt_read(const std::vector<String>& bams, PosAlleleMapVec& allele_mv, const String& region, const IntV& pv, StringV& names, int32_t start)
 {
     for (size_t i = 0; i < bams.size(); ++i) {
         BamProcess reader;
@@ -355,9 +364,8 @@ void bt_read(const std::vector<String>& bams, PosAlleleMapVec& allele_mv, const 
         if (!reader.FindSnpAtPos(region, pv)) {
             std::cerr << "Warning: " << reader.sm << " region " << region << " is empty." << std::endl;
         }
-        std::unique_lock<std::mutex> guard(mut);
-        headvcf += "\t" + reader.sm;
-        allele_mv.push_back(reader.allele_m);
+        allele_mv[start + i] = reader.allele_m;
+        names[start + i] = reader.sm;
         if (!reader.Close()) {
             std::cerr << "Warning: could not close file " << bams[i] << std::endl;
         }
