@@ -362,6 +362,10 @@ void runBaseType(int argc, char **argv)
     }
     if (bgzf_close(fpv) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
     if (bgzf_close(fpc) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
+    // remove tmp file
+    for (auto & f: ftmp_v) {
+        std::remove(f.c_str());
+    }
     // done
     clock_t cte = clock();
     double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
