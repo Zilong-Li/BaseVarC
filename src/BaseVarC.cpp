@@ -34,6 +34,7 @@ static const char* BASETYPE_MESSAGE =
 "  --region,     -g        Samtools-like region\n"
 "  --mapq,       -q <INT>  Mapping quality >= INT. [10]\n"
 "  --thread,     -t <INT>  Number of thread\n"
+"  --batch,      -b <INT>  Number of samples each batch\n"
 "  --verbose,    -v        Set verbose output\n"
 "\nReport bugs to lizilong@bgi.com \n\n";
 
@@ -108,6 +109,7 @@ namespace opt {
     static bool verbose = false;
     static int mapq;
     static int thread;
+    static int batch;
     static std::string input;
     static std::string reference;
     static std::string posfile;
@@ -115,7 +117,7 @@ namespace opt {
     static std::string output;
 }
 
-static const char* shortopts = "hvl:r:p:g:o:q:t:";
+static const char* shortopts = "hvl:r:p:g:o:q:t:b:";
 
 static const struct option longopts[] = {
   { "help",                    no_argument, NULL, 'h' },
@@ -125,6 +127,7 @@ static const struct option longopts[] = {
   { "posfile",                 required_argument, NULL, 'p' },
   { "region",                  required_argument, NULL, 'g' },
   { "output",                  required_argument, NULL, 'o' },
+  { "batch",                   required_argument, NULL, 'b' },
   { "thread",                  required_argument, NULL, 't' },
   { "mapq",                    required_argument, NULL, 'q' },
   { NULL, 0, NULL, 0 }
@@ -260,7 +263,7 @@ void runBaseType(int argc, char **argv)
     String headcvg = String(CVG_HEADER);
     String headvcf = String(VCF_HEADER) + "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
     int thread = opt::thread;
-    int bc = 10;
+    int bc = opt::batch;
     int bt = 1 + (N - 1) / bc;    // ceiling
     ThreadPool pool(thread);
     std::vector<std::future<void>> res;
@@ -551,6 +554,7 @@ void parseOptions(int argc, char **argv, const char* msg)
         switch (c) {
         case 'v': opt::verbose = true; break;
         case 'q': arg >> opt::mapq; break;
+        case 'b': arg >> opt::batch; break;
         case 't': arg >> opt::thread; break;
         case 'l': arg >> opt::input; break;
         case 'r': arg >> opt::reference; break;
