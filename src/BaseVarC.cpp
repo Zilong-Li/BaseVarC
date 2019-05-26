@@ -267,6 +267,7 @@ void runBaseType(int argc, char **argv)
     String region = opt::region;
     String tmp;
     StringV ftmp_v;
+    std::cerr << "begin to read bams and save as tmp file" << std::endl;
     for (int i = 0; i < bt; ++i) {
         tmp = opt::output + ".batch." + std::to_string(i) + ".tmp";
         ftmp_v.push_back(tmp);
@@ -316,6 +317,7 @@ void runBaseType(int argc, char **argv)
     bt = 1 + (pv.size() - 1) / buffer;
     IntV pv_t;
     std::vector<std::future<BtRes>> res2;
+    std::cerr << "begin to load data and run basetype" << std::endl;
     for (int i = 0; i < bt; ++i) {
         if (i == bt - 1) {
             IntV t(pv.begin() + i * buffer, pv.end());
@@ -355,8 +357,6 @@ void runBaseType(int argc, char **argv)
                 std::cerr << "fail to write - exit" << std::endl;
                 exit(EXIT_FAILURE);
             }
-            std::cerr << btr.cvg;
-            std::cout << btr.vcf;
         }
         res2.clear();
     }
