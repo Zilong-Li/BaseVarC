@@ -316,53 +316,54 @@ void runBaseType(int argc, char **argv)
     AlleleInfoVector aiv;
     DepM idx;
     int32_t j = 0, k = 0;
-    int buffer = 1000;
-    bt = 1 + (pv.size() - 1) / buffer;
+    // int buffer = 10000;
+    // bt = 1 + (pv.size() - 1) / buffer;
     IntV pv_t;
     std::vector<std::future<BtRes>> res2;
+    res2.reserve(pv.size());
     std::cerr << "begin to load data and run basetype" << std::endl;
-    for (int i = 0; i < bt; ++i) {
-        if (i == bt - 1) {
-            IntV t(pv.begin() + i * buffer, pv.end());
-            pv_t = t;
-        } else {
-            IntV t(pv.begin() + i * buffer, pv.begin() + (i + 1)*buffer);
-            pv_t = t;
-        }
-        for (auto & p : pv_t) {
-            j = 0; k = 0;
-            for (auto & fp: fpiv) {
-                if (std::getline(*fp, tmp)) {
-                    while ((pos = tmp.find(' ')) != std::string::npos) {
-                        token = tmp.substr(0, pos);
-                        if (token != ".") {
-                            std::istringstream iss(token);
-                            iss >> ai;
-                            aiv.push_back(ai);
-                            idx.insert({j, k++});
-                        }
-                        tmp.erase(0, pos + 1);
-                        j++;
+    // for (int i = 0; i < bt; ++i) {
+    //     if (i == bt - 1) {
+    //         IntV t(pv.begin() + i * buffer, pv.end());
+    //         pv_t = t;
+    //     } else {
+    //         IntV t(pv.begin() + i * buffer, pv.begin() + (i + 1)*buffer);
+    //         pv_t = t;
+    //     }
+    // }
+    for (auto & p : pv) {
+        j = 0; k = 0;
+        for (auto & fp: fpiv) {
+            if (std::getline(*fp, tmp)) {
+                while ((pos = tmp.find(' ')) != std::string::npos) {
+                    token = tmp.substr(0, pos);
+                    if (token != ".") {
+                        std::istringstream iss(token);
+                        iss >> ai;
+                        aiv.push_back(ai);
+                        idx.insert({j, k++});
                     }
+                    tmp.erase(0, pos + 1);
+                    j++;
                 }
             }
-            res2.emplace_back(pool.enqueue(bt_f, p, aiv, idx, N, chr, rg_s, std::cref(seq)));
-            aiv.clear();
-            idx.clear();
         }
-        for (auto && r: res2) {
-            auto btr = r.get();
-            if (bgzf_write(fpv, btr.vcf.c_str(), btr.vcf.length()) != btr.vcf.length()) {
-                std::cerr << "fail to write - exit" << std::endl;
-                exit(EXIT_FAILURE);
-            }
-            if (bgzf_write(fpc, btr.cvg.c_str(), btr.cvg.length()) != btr.cvg.length()) {
-                std::cerr << "fail to write - exit" << std::endl;
-                exit(EXIT_FAILURE);
-            }
-        }
-        res2.clear();
+        res2.emplace_back(pool.enqueue(bt_f, p, aiv, idx, N, chr, rg_s, std::cref(seq)));
+        aiv.clear();
+        idx.clear();
     }
+    for (auto && r: res2) {
+        auto btr = r.get();
+        if (bgzf_write(fpv, btr.vcf.c_str(), btr.vcf.length()) != btr.vcf.length()) {
+            std::cerr << "fail to write - exit" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        if (bgzf_write(fpc, btr.cvg.c_str(), btr.cvg.length()) != btr.cvg.length()) {
+            std::cerr << "fail to write - exit" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+    res2.clear();
     if (bgzf_close(fpv) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
     if (bgzf_close(fpc) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
     // remove tmp file
