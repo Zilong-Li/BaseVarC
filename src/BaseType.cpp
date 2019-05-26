@@ -250,16 +250,16 @@ void BaseType::stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVe
     s.phred_qual = -10 * log10(2 * normsf(abs(z_qual)));
     s.phred_mapq = -10 * log10(2 * normsf(abs(z_mapq)));
     s.phred_rpr  = -10 * log10(2 * normsf(abs(z_rpr)));
-    if (isinf(s.phred_qual)) s.phred_qual = 10000.0;
+    if (std::isinf(s.phred_qual)) s.phred_qual = 10000.0;
     else if (!(s.phred_qual != 0)) s.phred_qual = 0.0;
-    if (isinf(s.phred_mapq)) s.phred_mapq = 10000.0;
+    if (std::isinf(s.phred_mapq)) s.phred_mapq = 10000.0;
     else if (!(s.phred_mapq != 0)) s.phred_mapq = 0.0;
-    if (isinf(s.phred_rpr)) s.phred_rpr = 10000.0;
+    if (std::isinf(s.phred_rpr)) s.phred_rpr = 10000.0;
     else if (!(s.phred_rpr != 0)) s.phred_rpr = 0.0;
     double left_p, right_p, twoside_p;
     kt_fisher_exact(s.ref_fwd, s.ref_rev, s.alt_fwd, s.alt_rev, &left_p, &right_p, &twoside_p);
     s.fs = -10 * log10(twoside_p);
-    if (isinf(s.fs)) s.fs = 10000.0;
+    if (std::isinf(s.fs)) s.fs = 10000.0;
     else if (s.fs == 0) s.fs = 0.0;
     if (s.alt_fwd * s.ref_rev > 0) {
         s.sor = static_cast<double>(s.ref_fwd * s.alt_rev) / (s.ref_rev * s.alt_fwd);
