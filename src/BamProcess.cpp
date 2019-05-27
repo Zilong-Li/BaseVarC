@@ -81,7 +81,7 @@ bool BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
                 }
             }
             // now we pick this read.
-            if (pos < r.Position() + 1 || flag) {
+            if (pos < r.Position() + 1 || pos > r.PositionEnd() || flag) {
                 ;    //continue is a bug; should do nothing
             } else {
                 GetAllele(r, pos, ale);
@@ -158,7 +158,7 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const PosInfoVector& pv)
                     }
                 }
                 // now we pick this read.
-                if (s.pos < r.Position() + 1 || flag) {
+                if (s.pos < r.Position() + 1 || s.pos > r.PositionEnd() || flag) {
                     snps.push_back('.');
                 } else {
                     snps.push_back(GetSnpCode(r, s));
@@ -173,8 +173,7 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const PosInfoVector& pv)
 char BamProcess::GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const
 {
     int offset = GetOffset(r, s.pos);
-    char seq[r.Sequence().length() + 1];
-    std::strcpy(seq, r.Sequence().c_str());    // must copy r.r.Sequence();
+    std::string seq = r.Sequence();
     char x = seq[offset];
     if (x == s.ref) {
         return '0';
@@ -188,13 +187,15 @@ char BamProcess::GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const
 void BamProcess::GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, AlleleInfo& ale) const
 {
     int offset = GetOffset(r, pos);
-    char seq[r.Sequence().length() + 1];
-    char qualities[r.Qualities().length() + 1];
-    std::strcpy(seq, r.Sequence().c_str());    // must copy r.r.Sequence();
-    std::strcpy(qualities, r.Qualities().c_str());
-    // assign allele info
-    ale.base = base_m.at(seq[offset]);
+    std::string seq = r.Sequence();
+    std::string qualities = r.Qualities();
+    // try {ale.base = base_m.at(seq[offset]);}
+    // catch (std::out_of_range e) {
+    //     std::cerr << pos << '\t' << r.Sequence() <<'\t'<< offset <<'\t'<< seq[offset]<< std::endl;
+    //     exit(EXIT_FAILURE);
+    // }
     // offset = 33 , so need to substract 33;
+    ale.base = base_m.at(seq[offset]);
     ale.qual = qualities[offset] - 33;
     ale.mapq = r.MapQuality();
     ale.rpr = offset + 1;
