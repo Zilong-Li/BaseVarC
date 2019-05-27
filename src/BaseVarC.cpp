@@ -36,6 +36,8 @@ static const char* BASETYPE_MESSAGE =
 "  --thread,     -t <INT>  Number of thread\n"
 "  --batch,      -b <INT>  Number of samples each batch\n"
 "  --buffer,               Number of lines for thread pool to deal with\n"
+"  --load,                 Load data only\n"
+"  --rerun,                Read previous loaded data and rerun\n"
 "  --verbose,    -v        Set verbose output\n"
 "\nReport bugs to lizilong@bgi.com \n\n";
 
@@ -108,6 +110,8 @@ BtRes bt_f(int32_t p, AlleleInfoVector aiv, DepM idx, int32_t N, String chr, int
 
 namespace opt {
     static bool verbose = false;
+    static bool rerun   = false;
+    static bool load    = false;
     static int mapq;
     static int thread;
     static int batch;
@@ -124,6 +128,8 @@ static const char* shortopts = "hvl:r:p:g:o:q:t:b:";
 static const struct option longopts[] = {
   { "help",                    no_argument, NULL, 'h' },
   { "verbose",                 no_argument, NULL, 'v' },
+  { "rerun",                   no_argument, NULL,  8  },
+  { "load",                    no_argument, NULL,  7  },
   { "input",                   required_argument, NULL, 'l' },
   { "reference",               required_argument, NULL, 'r' },
   { "posfile",                 required_argument, NULL, 'p' },
@@ -266,31 +272,39 @@ void runBaseType(int argc, char **argv)
     String headcvg = String(CVG_HEADER);
     String headvcf = String(VCF_HEADER) + "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t";
     int thread = opt::thread;
+    ThreadPool pool(thread);
+    String tmp;
+    StringV ftmp_v;
     int bc = opt::batch;
     int bt = 1 + (N - 1) / bc;    // ceiling
-    ThreadPool pool(thread);
-    std::vector<std::future<void>> res;
-    String region = opt::region;
-    String tmp;
-    StringV bams_t;
-    StringV ftmp_v;
-    std::cerr << "begin to read bams and save as tmp file" << std::endl;
-    for (int i = 0; i < bt; ++i) {
-        tmp = opt::output + ".batch." + std::to_string(i) + ".tmp";
-        ftmp_v.push_back(tmp);
-        if (i == bt - 1) {
-            StringV t(bams.begin() + i * bc, bams.end());
-            bams_t = t;
-        } else {
-            StringV t(bams.begin() + i * bc, bams.begin() + (i + 1)*bc);
-            bams_t = t;
+    if (!opt::rerun) {
+        std::vector<std::future<void>> res;
+        String region = opt::region;
+        StringV bams_t;
+        std::cerr << "begin to read bams and save as tmp file" << std::endl;
+        for (int i = 0; i < bt; ++i) {
+            tmp = opt::output + ".batch." + std::to_string(i) + ".tmp";
+            ftmp_v.push_back(tmp);
+            if (i == bt - 1) {
+                StringV t(bams.begin() + i * bc, bams.end());
+                bams_t = t;
+            } else {
+                StringV t(bams.begin() + i * bc, bams.begin() + (i + 1)*bc);
+                bams_t = t;
+            }
+            res.emplace_back(pool.enqueue(bt_read, bams_t, std::cref(region), std::cref(pv), tmp));
         }
-        res.emplace_back(pool.enqueue(bt_read, bams_t, std::cref(region), std::cref(pv), tmp));
+        for (auto && r: res) {
+            r.get();
+        }
+        res.clear();
+        if (opt::load) exit(EXIT_SUCCESS);
+    } else {
+        for (int i = 0; i < bt; ++i) {
+            tmp = opt::output + ".batch." + std::to_string(i) + ".tmp";
+            ftmp_v.push_back(tmp);
+        }
     }
-    for (auto && r: res) {
-        r.get();
-    }
-    res.clear();
     // begin to call basetype and output
     String vcfout = opt::output + ".vcf.gz";
     String cvgout = opt::output + ".cvg.gz";
@@ -565,7 +579,6 @@ void parseOptions(int argc, char **argv, const char* msg)
     for (char c; (c = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1;) {
         std::istringstream arg(optarg != NULL ? optarg : "");
         switch (c) {
-        case 'v': opt::verbose = true; break;
         case 'q': arg >> opt::mapq; break;
         case 'b': arg >> opt::batch; break;
         case 't': arg >> opt::thread; break;
@@ -575,6 +588,9 @@ void parseOptions(int argc, char **argv, const char* msg)
         case 'g': arg >> opt::region; break;
         case 'o': arg >> opt::output; break;
         case  9 : arg >> opt::buffer; break;
+        case  8 : opt::rerun   = true; break;
+        case  7 : opt::load    = true; break;
+        case 'v': opt::verbose = true; break;
         default: die = true;
         }
     }
