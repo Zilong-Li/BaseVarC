@@ -316,8 +316,6 @@ void runBaseType(int argc, char **argv)
     AlleleInfoVector aiv;
     DepM idx;
     int32_t j = 0, k = 0;
-    // int buffer = 10000;
-    // bt = 1 + (pv.size() - 1) / buffer;
     IntV pv_t;
     std::vector<std::future<BtRes>> res2;
     res2.reserve(pv.size());
@@ -396,7 +394,6 @@ void bt_read(StringV bams, const String& region, const IntV& pv, String fout)
         }
     }
     assert(allele_mv.size() == n);
-    // names.pop_back();
     names += "\n";
     std::ofstream fo(fout);
     fo << names;

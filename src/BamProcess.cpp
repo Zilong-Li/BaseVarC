@@ -122,7 +122,7 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const PosInfoVector& pv)
         bool flag = false;
         size_t  i = 0, j = 0;
         r = rv[i];
-        snps.reserve(pv.size());       // best practice;
+        snps.reserve(pv.size());
         const std::string SKIP = "DPN";
         for (auto const& s: pv) {
             /* select the first record covering this position */
