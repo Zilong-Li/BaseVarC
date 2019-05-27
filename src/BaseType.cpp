@@ -207,7 +207,7 @@ String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, in
         qt = "LowQual";
     }
     std::ostringstream sout;
-    sout << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab << bq << col << ac << col << af << col << caf << col << dp << col << fs << col << mq << col << rp << col << sb_alt << col << sb_ref << col << sor << tab << samgt << "\n";
+    sout << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab << bq << col << ac << col << af << col << caf << col << dp << col << fs << col << mq << col << qd << col << rp << col << sb_alt << col << sb_ref << col << sor << tab << samgt << "\n";
     String out = sout.str();
     return out;
 }
