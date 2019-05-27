@@ -35,6 +35,7 @@ static const char* BASETYPE_MESSAGE =
 "  --mapq,       -q <INT>  Mapping quality >= INT. [10]\n"
 "  --thread,     -t <INT>  Number of thread\n"
 "  --batch,      -b <INT>  Number of samples each batch\n"
+"  --buffer,               Number of lines for thread pool to deal with\n"
 "  --verbose,    -v        Set verbose output\n"
 "\nReport bugs to lizilong@bgi.com \n\n";
 
@@ -110,6 +111,7 @@ namespace opt {
     static int mapq;
     static int thread;
     static int batch;
+    static int buffer;
     static std::string input;
     static std::string reference;
     static std::string posfile;
@@ -127,6 +129,7 @@ static const struct option longopts[] = {
   { "posfile",                 required_argument, NULL, 'p' },
   { "region",                  required_argument, NULL, 'g' },
   { "output",                  required_argument, NULL, 'o' },
+  { "buffer",                  required_argument, NULL,  9  },
   { "batch",                   required_argument, NULL, 'b' },
   { "thread",                  required_argument, NULL, 't' },
   { "mapq",                    required_argument, NULL, 'q' },
@@ -269,18 +272,20 @@ void runBaseType(int argc, char **argv)
     std::vector<std::future<void>> res;
     String region = opt::region;
     String tmp;
+    StringV bams_t;
     StringV ftmp_v;
     std::cerr << "begin to read bams and save as tmp file" << std::endl;
     for (int i = 0; i < bt; ++i) {
         tmp = opt::output + ".batch." + std::to_string(i) + ".tmp";
         ftmp_v.push_back(tmp);
         if (i == bt - 1) {
-            StringV bams_t(bams.begin() + i * bc, bams.end());
-            res.emplace_back(pool.enqueue(bt_read, bams_t, std::cref(region), std::cref(pv), tmp));
+            StringV t(bams.begin() + i * bc, bams.end());
+            bams_t = t;
         } else {
-            StringV bams_t(bams.begin() + i * bc, bams.begin() + (i + 1)*bc);
-            res.emplace_back(pool.enqueue(bt_read, bams_t, std::cref(region), std::cref(pv), tmp));
+            StringV t(bams.begin() + i * bc, bams.begin() + (i + 1)*bc);
+            bams_t = t;
         }
+        res.emplace_back(pool.enqueue(bt_read, bams_t, std::cref(region), std::cref(pv), tmp));
     }
     for (auto && r: res) {
         r.get();
@@ -315,11 +320,12 @@ void runBaseType(int argc, char **argv)
     AlleleInfo ai;
     AlleleInfoVector aiv;
     DepM idx;
-    int32_t j = 0, k = 0;
+    int32_t j, k;
     IntV pv_t;
     std::vector<std::future<BtRes>> res2;
-    res2.reserve(pv.size());
     std::cerr << "begin to load data and run basetype" << std::endl;
+    int t = 0;
+    int buffer = opt::buffer;
     for (auto & p : pv) {
         j = 0; k = 0;
         for (auto & fp: fpiv) {
@@ -338,6 +344,21 @@ void runBaseType(int argc, char **argv)
             }
         }
         if (aiv.size() > 0) {
+            if (++t == buffer) {
+                for (auto && r: res2) {
+                    auto btr = r.get();
+                    if (btr.vcf != "NA" && bgzf_write(fpv, btr.vcf.c_str(), btr.vcf.length()) != btr.vcf.length()) {
+                        std::cerr << "fail to write - exit" << std::endl;
+                        exit(EXIT_FAILURE);
+                    }
+                    if (bgzf_write(fpc, btr.cvg.c_str(), btr.cvg.length()) != btr.cvg.length()) {
+                        std::cerr << "fail to write - exit" << std::endl;
+                        exit(EXIT_FAILURE);
+                    }
+                }
+                res2.clear();
+                t = 0;
+            }
             res2.emplace_back(pool.enqueue(bt_f, p, aiv, idx, N, chr, rg_s, std::cref(seq)));
             aiv.clear();
             idx.clear();
@@ -379,7 +400,7 @@ void bt_read(StringV bams, const String& region, const IntV& pv, String fout)
     int32_t count = 0;
     for (auto const& bam: bams) {
         BamProcess reader;
-        if (!(++count % 100)) std::cerr << "reading number " << count << " bam -- " << bam << std::endl;
+        if (!(++count % 100)) std::cerr << "reading number " << count << " bam -- " << fout << std::endl;
         if (!reader.Open(bam)) {
             std::cerr << "ERROR: could not open file " << bam << std::endl;
             exit(EXIT_FAILURE);
@@ -413,7 +434,7 @@ void bt_read(StringV bams, const String& region, const IntV& pv, String fout)
 BtRes bt_f(int32_t p, AlleleInfoVector aiv, DepM idx, int32_t N, String chr, int32_t rg_s, const String& seq)
 {
     int8_t alt_base, ref_base;
-    int32_t j = 0, na, nc, ng, nt, ref_fwd, ref_rev, alt_fwd, alt_rev;
+    int32_t na, nc, ng, nt, ref_fwd, ref_rev, alt_fwd, alt_rev;
     double fs, sor, left_p, right_p, twoside_p;
     double min_af = 0.001;
     BaseV bases, quals;
@@ -553,6 +574,7 @@ void parseOptions(int argc, char **argv, const char* msg)
         case 'p': arg >> opt::posfile; break;
         case 'g': arg >> opt::region; break;
         case 'o': arg >> opt::output; break;
+        case  9 : arg >> opt::buffer; break;
         default: die = true;
         }
     }
