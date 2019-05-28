@@ -307,13 +307,17 @@ void runBaseType(int argc, char **argv)
     String cvgout = opt::output + ".cvg.gz";
     BGZF* fpv = bgzf_open(vcfout.c_str(), "w");
     BGZF* fpc = bgzf_open(cvgout.c_str(), "w");
-    std::vector<std::shared_ptr<std::ifstream> > fpiv;
+    BGZF* fpi;
+    std::vector<BGZF*> fpiv;
     for (auto & f: ftmp_v) {
-        fpiv.push_back(std::make_shared<std::ifstream>(f));
+        fpi = bgzf_open(f.c_str(), "r");
+        fpiv.push_back(fpi);
     }
+    kstring_t ks;
+    ks.s = 0; ks.l = 0; ks.m = 0;
     for (auto & fp: fpiv) {
-        if (std::getline(*fp, tmp)) {
-            headvcf += tmp;
+        if (bgzf_getline(fp, '\n', &ks) >= 0) {
+            headvcf += (String)ks.s;
         }
     }
     headvcf.pop_back();
@@ -337,7 +341,8 @@ void runBaseType(int argc, char **argv)
     for (auto & p : pv) {
         j = 0; k = 0;
         for (auto & fp: fpiv) {
-            if (std::getline(*fp, tmp)) {
+            if (bgzf_getline(fp, '\n', &ks) >= 0) {
+                tmp = (String)ks.s;
                 while ((pos = tmp.find(' ')) != std::string::npos) {
                     token = tmp.substr(0, pos);
                     if (token != ".") {
@@ -405,19 +410,33 @@ void bt_read(StringV bams, const String& region, const IntV& pv, String fout)
     }
     assert(allele_mv.size() == n);
     names += "\n";
-    std::ofstream fo(fout);
-    fo << names;
+    std::ostringstream out;
+    out << names;
+    BGZF* fp = bgzf_open(fout.c_str(), "w");
+    if (bgzf_write(fp, out.str().c_str(), out.str().length()) != out.str().length()) {
+        std::cerr << "fail to write - exit" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    out.str("");
+    out.clear();
     for (auto & p : pv) {
         for (auto const& m : allele_mv) {
             if (m.count(p)) {
                 auto const& a = m.at(p);
-                fo << a.base << comma << a.mapq << comma << a.qual << comma << a.rpr << comma << a.strand << space;
+                out << a.base << comma << a.mapq << comma << a.qual << comma << a.rpr << comma << a.strand << space;
             } else {
-                fo << ". ";
+                out << ". ";
             }
         }
-        fo << "\n";
+        out << "\n";
+        if (bgzf_write(fp, out.str().c_str(), out.str().length()) != out.str().length()) {
+            std::cerr << "fail to write - exit" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        out.str("");
+        out.clear();
     }
+    if (bgzf_close(fp) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
 }
 
 BtRes bt_f(int32_t p, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, const String& chr, int32_t rg_s, const String& seq)
