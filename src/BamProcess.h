@@ -33,20 +33,6 @@ struct AlleleInfo
     unsigned int qual:  8;
     unsigned int rpr:   8;
     unsigned int strand:1;      // 0 : -, 1 : +
-
-    friend std::istream& operator>>(std::istream& is, AlleleInfo& info) {
-        std::vector<int> ale;
-        for (std::string v; std::getline(is, v, ','); ) {
-            ale.push_back(std::stoi(v));
-        }
-        assert(ale.size() == 5);
-        info.base = ale[0];
-        info.mapq = ale[1];
-        info.qual = ale[2];
-        info.rpr  = ale[3];
-        info.strand = ale[4];
-        return is;
-    }
 };
 typedef std::vector<AlleleInfo> AlleleInfoVector;
 typedef std::unordered_map<int32_t, AlleleInfo> PosAlleleMap;

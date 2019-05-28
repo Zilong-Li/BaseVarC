@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <ctime>
+#include <string.h>
 
 #include "htslib/bgzf.h"
 #include "RefReader.h"
@@ -177,8 +178,7 @@ void runConcat(int argc, char **argv)
     int32_t i, k, m, count, n = 0, mt = 0;
     int32_t nm = fm_v.size();
     BGZF* fp = NULL;
-    kstring_t ks;
-    ks.s = 0; ks.l = 0; ks.m = 0;
+    kstring_t ks = {0, 0, NULL};
     String ss;
     StringV Drg;
     std::vector<StringV> D;
@@ -313,8 +313,7 @@ void runBaseType(int argc, char **argv)
         fpi = bgzf_open(f.c_str(), "r");
         fpiv.push_back(fpi);
     }
-    kstring_t ks;
-    ks.s = 0; ks.l = 0; ks.m = 0;
+    kstring_t ks = {0, 0, NULL};
     for (auto & fp: fpiv) {
         if (bgzf_getline(fp, '\n', &ks) >= 0) {
             headvcf += (String)ks.s;
@@ -335,23 +334,34 @@ void runBaseType(int argc, char **argv)
     AlleleInfo ai;
     AlleleInfoVector aiv;
     DepM idx;
-    int32_t j, k;
+    int32_t j, k, i, count=0;
     IntV pv_t;
     std::cerr << "begin to load data and run basetype" << std::endl;
+    char *buf=NULL, *str=NULL, *str2=NULL, *pti=NULL, *pto=NULL;
     for (auto & p : pv) {
         j = 0; k = 0;
         for (auto & fp: fpiv) {
             if (bgzf_getline(fp, '\n', &ks) >= 0) {
-                tmp = (String)ks.s;
-                while ((pos = tmp.find(' ')) != std::string::npos) {
-                    token = tmp.substr(0, pos);
-                    if (token != ".") {
-                        std::istringstream iss(token);
-                        iss >> ai;
+                buf = ks.s;
+                while ((str = strtok_r(buf, " ", &pto)) != NULL) {
+                    if (str[0] != '.') {
+                        buf = str;
+                        for (i = 0; i < 5; ++i) {
+                            if ((str2 = strtok_r(buf, ",", &pti)) != NULL) {
+                                switch(i){
+                                case 0: ai.base = std::atoi(str2);break;
+                                case 1: ai.mapq = std::atoi(str2);break;
+                                case 2: ai.qual = std::atoi(str2);break;
+                                case 3: ai.rpr = std::atoi(str2);break;
+                                case 4: ai.strand = std::atoi(str2);break;
+                                }
+                                buf = NULL;
+                            }
+                        }
                         aiv.push_back(ai);
                         idx.insert({j, k++});
                     }
-                    tmp.erase(0, pos + 1);
+                    buf = NULL;
                     j++;
                 }
             }
@@ -368,6 +378,7 @@ void runBaseType(int argc, char **argv)
             }
             aiv.clear();
             idx.clear();
+            if (!(++count % 1000)) std::cerr << "basetype completed " << i << " sites" << std::endl;
         }
     }
     if (bgzf_close(fpv) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
