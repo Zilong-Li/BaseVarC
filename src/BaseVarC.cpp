@@ -35,7 +35,6 @@ static const char* BASETYPE_MESSAGE =
 "  --mapq,       -q <INT>  Mapping quality >= INT. [10]\n"
 "  --thread,     -t <INT>  Number of thread\n"
 "  --batch,      -b <INT>  Number of samples each batch\n"
-"  --buffer,               Number of lines for thread pool to deal with\n"
 "  --load,                 Load data only\n"
 "  --rerun,                Read previous loaded data and rerun\n"
 "  --verbose,    -v        Set verbose output\n"
@@ -106,7 +105,7 @@ void runConcat(int argc, char **argv);
 void parseOptions(int argc, char **argv, const char* msg);
 
 void bt_read(StringV bams, const String& region, const IntV& pv, String fout);
-BtRes bt_f(int32_t p, AlleleInfoVector aiv, DepM idx, int32_t N, String chr, int32_t rg_s, const String& seq);
+BtRes bt_f(int32_t p, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, const String& chr, int32_t rg_s, const String& seq);
 
 namespace opt {
     static bool verbose = false;
@@ -115,7 +114,6 @@ namespace opt {
     static int mapq;
     static int thread;
     static int batch;
-    static int buffer;
     static std::string input;
     static std::string reference;
     static std::string posfile;
@@ -135,7 +133,6 @@ static const struct option longopts[] = {
   { "posfile",                 required_argument, NULL, 'p' },
   { "region",                  required_argument, NULL, 'g' },
   { "output",                  required_argument, NULL, 'o' },
-  { "buffer",                  required_argument, NULL,  9  },
   { "batch",                   required_argument, NULL, 'b' },
   { "thread",                  required_argument, NULL, 't' },
   { "mapq",                    required_argument, NULL, 'q' },
@@ -336,10 +333,7 @@ void runBaseType(int argc, char **argv)
     DepM idx;
     int32_t j, k;
     IntV pv_t;
-    std::vector<std::future<BtRes>> res2;
     std::cerr << "begin to load data and run basetype" << std::endl;
-    int t = 0, i = 0;
-    int buffer = opt::buffer;
     for (auto & p : pv) {
         j = 0; k = 0;
         for (auto & fp: fpiv) {
@@ -358,39 +352,19 @@ void runBaseType(int argc, char **argv)
             }
         }
         if (aiv.size() > 0) {
-            if (++t == buffer) {
-                for (auto && r: res2) {
-                    auto btr = r.get();
-                    if (btr.vcf != "NA" && bgzf_write(fpv, btr.vcf.c_str(), btr.vcf.length()) != btr.vcf.length()) {
-                        std::cerr << "fail to write - exit" << std::endl;
-                        exit(EXIT_FAILURE);
-                    }
-                    if (bgzf_write(fpc, btr.cvg.c_str(), btr.cvg.length()) != btr.cvg.length()) {
-                        std::cerr << "fail to write - exit" << std::endl;
-                        exit(EXIT_FAILURE);
-                    }
-                }
-                res2.clear();
-                t = 0; ++i;
-                std::cerr << "basetype complete " << i * buffer << " sites" << std::endl;
+            auto btr = bt_f(p, aiv, idx, N, chr, rg_s, seq);
+            if (btr.vcf != "NA" && bgzf_write(fpv, btr.vcf.c_str(), btr.vcf.length()) != btr.vcf.length()) {
+                std::cerr << "fail to write - exit" << std::endl;
+                exit(EXIT_FAILURE);
             }
-            res2.emplace_back(pool.enqueue(bt_f, p, aiv, idx, N, chr, rg_s, std::cref(seq)));
+            if (bgzf_write(fpc, btr.cvg.c_str(), btr.cvg.length()) != btr.cvg.length()) {
+                std::cerr << "fail to write - exit" << std::endl;
+                exit(EXIT_FAILURE);
+            }
             aiv.clear();
             idx.clear();
         }
     }
-    for (auto && r: res2) {
-        auto btr = r.get();
-        if (btr.vcf != "NA" && bgzf_write(fpv, btr.vcf.c_str(), btr.vcf.length()) != btr.vcf.length()) {
-            std::cerr << "fail to write - exit" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-        if (bgzf_write(fpc, btr.cvg.c_str(), btr.cvg.length()) != btr.cvg.length()) {
-            std::cerr << "fail to write - exit" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-    }
-    res2.clear();
     if (bgzf_close(fpv) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
     if (bgzf_close(fpc) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
     // remove tmp file
@@ -446,7 +420,7 @@ void bt_read(StringV bams, const String& region, const IntV& pv, String fout)
     }
 }
 
-BtRes bt_f(int32_t p, AlleleInfoVector aiv, DepM idx, int32_t N, String chr, int32_t rg_s, const String& seq)
+BtRes bt_f(int32_t p, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, const String& chr, int32_t rg_s, const String& seq)
 {
     int8_t alt_base, ref_base;
     int32_t na, nc, ng, nt, ref_fwd, ref_rev, alt_fwd, alt_rev;
@@ -588,7 +562,6 @@ void parseOptions(int argc, char **argv, const char* msg)
         case 'p': arg >> opt::posfile; break;
         case 'g': arg >> opt::region; break;
         case 'o': arg >> opt::output; break;
-        case  9 : arg >> opt::buffer; break;
         case  8 : opt::rerun   = true; break;
         case  7 : opt::load    = true; break;
         case 'v': opt::verbose = true; break;
