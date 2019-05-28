@@ -338,7 +338,7 @@ void runBaseType(int argc, char **argv)
     IntV pv_t;
     std::vector<std::future<BtRes>> res2;
     std::cerr << "begin to load data and run basetype" << std::endl;
-    int t = 0;
+    int t = 0, i = 0;
     int buffer = opt::buffer;
     for (auto & p : pv) {
         j = 0; k = 0;
@@ -371,7 +371,8 @@ void runBaseType(int argc, char **argv)
                     }
                 }
                 res2.clear();
-                t = 0;
+                t = 0; ++i;
+                std::cerr << "basetype complete " << i * buffer << " sites" << std::endl;
             }
             res2.emplace_back(pool.enqueue(bt_f, p, aiv, idx, N, chr, rg_s, std::cref(seq)));
             aiv.clear();
