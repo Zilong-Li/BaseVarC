@@ -166,85 +166,6 @@ int main(int argc, char** argv)
     return 0;
 }
 
-void runConcat(int argc, char **argv)
-{
-    parseOptions(argc, argv, CONCAT_MESSAGE);
-    String fm = opt::input;
-    String fo = opt::output;
-    clock_t ctb = clock();
-    std::ifstream ifm(fm);
-    StringV fm_v(std::istream_iterator<BaseVar::Line>{ifm},
-	             std::istream_iterator<BaseVar::Line>{});
-    int32_t i, k, m, count, n = 0, mt = 0;
-    int32_t nm = fm_v.size();
-    BGZF* fp = NULL;
-    kstring_t ks = {0, 0, NULL};
-    String ss;
-    StringV Drg;
-    std::vector<StringV> D;
-    D.reserve(nm);
-    for (k = 0; k < nm ; ++k) {
-        std::cout << "reading file : " << fm_v[k] << std::endl;
-        fp = bgzf_open(fm_v[k].c_str(), "r");
-        if (bgzf_getline(fp, '\n', &ks) >= 0) {
-            ss = ks.s;
-            StringV tokens;
-            String token;
-            std::istringstream ts(ss);
-            while (std::getline(ts, token, '\t')) tokens.push_back(token);
-            if (n > 0 && n != std::stol(tokens[0])) {
-                std::cerr << "error: the number of samples among the inputs are different!" << std::endl;
-                exit(EXIT_FAILURE);
-            } else {
-                n = std::stol(tokens[0]);
-                m = std::stol(tokens[1]);
-                mt += m;
-            }
-        }
-        count = 0;
-        Drg.reserve(n);
-        while (bgzf_getline(fp, '\n', &ks) >= 0) {
-            ++count;
-            Drg.push_back(ks.s);
-        }
-        if (count != n) {
-            std::cerr << "error: the number of samples dont match the header!" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-        D.push_back(Drg);
-        Drg.clear();
-        if (bgzf_close(fp) < 0) {
-            std::cerr << "warning: file cannot be closed!" << std::endl;
-        }
-    }
-
-    fp = bgzf_open(fo.c_str(), "w");
-    ss = std::to_string(n) + "\t" + std::to_string(mt) + "\n";
-    if (bgzf_write(fp, ss.c_str(), ss.length()) != ss.length()) {
-        std::cerr << "fail to write - exit" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    // fast concatenation consider using rope data structure
-    // @see https://brianbondy.com/blog/tagged/data-structure
-    for (i = 0; i < n; ++i){
-        ss = "";
-        ss.reserve(mt+1);
-        for (k = 0; k < nm; ++k) {
-            ss += D[k][i];
-        }
-        ss += "\n";
-        if (bgzf_write(fp, ss.c_str(), ss.length()) != ss.length()) {
-            std::cerr << "fail to write" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-    }
-    if (bgzf_close(fp) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
-    clock_t cte = clock();
-    double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
-    std::cout << "elapsed secs : " << elapsed_secs << std::endl;
-    std::cout << "concat done" << std::endl;
-}
-
 void runBaseType(int argc, char **argv)
 {
     parseOptions(argc, argv, BASETYPE_MESSAGE);
@@ -427,7 +348,6 @@ void bt_read(StringV bams, const String& region, const IntV& pv, String fout)
             std::cerr << "Warning: could not close file " << bam << std::endl;
         }
     }
-    assert(allele_mv.size() == n);
     names += "\n";
     std::ostringstream out;
     out << names;
@@ -465,7 +385,6 @@ BtRes bt_f(int32_t p, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, c
     double fs, sor, left_p, right_p, twoside_p;
     double min_af = 0.001;
     BaseV bases, quals;
-    IntV tmp;
     std::ostringstream sout;
     BtRes res;
     // output cvg;
@@ -484,7 +403,7 @@ BtRes bt_f(int32_t p, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, c
             quals.push_back(a.qual);
         }
     }
-    tmp = {na, nc, ng, nt};
+    IntV tmp = {na, nc, ng, nt};
     std::vector<size_t> didx = BaseVar::sortidx(tmp);
     if (didx[0] != ref_base) {
         alt_base = didx[0];
@@ -581,6 +500,85 @@ void runPopMatrix (int argc, char **argv)
     double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
     std::cout << "elapsed secs : " << elapsed_secs << std::endl;
     std::cerr << "popmatrix done" << std::endl;
+}
+
+void runConcat(int argc, char **argv)
+{
+    parseOptions(argc, argv, CONCAT_MESSAGE);
+    String fm = opt::input;
+    String fo = opt::output;
+    clock_t ctb = clock();
+    std::ifstream ifm(fm);
+    StringV fm_v(std::istream_iterator<BaseVar::Line>{ifm},
+	             std::istream_iterator<BaseVar::Line>{});
+    int32_t i, k, m, count, n = 0, mt = 0;
+    int32_t nm = fm_v.size();
+    BGZF* fp = NULL;
+    kstring_t ks = {0, 0, NULL};
+    String ss;
+    StringV Drg;
+    std::vector<StringV> D;
+    D.reserve(nm);
+    for (k = 0; k < nm ; ++k) {
+        std::cout << "reading file : " << fm_v[k] << std::endl;
+        fp = bgzf_open(fm_v[k].c_str(), "r");
+        if (bgzf_getline(fp, '\n', &ks) >= 0) {
+            ss = ks.s;
+            StringV tokens;
+            String token;
+            std::istringstream ts(ss);
+            while (std::getline(ts, token, '\t')) tokens.push_back(token);
+            if (n > 0 && n != std::stol(tokens[0])) {
+                std::cerr << "error: the number of samples among the inputs are different!" << std::endl;
+                exit(EXIT_FAILURE);
+            } else {
+                n = std::stol(tokens[0]);
+                m = std::stol(tokens[1]);
+                mt += m;
+            }
+        }
+        count = 0;
+        Drg.reserve(n);
+        while (bgzf_getline(fp, '\n', &ks) >= 0) {
+            ++count;
+            Drg.push_back(ks.s);
+        }
+        if (count != n) {
+            std::cerr << "error: the number of samples dont match the header!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        D.push_back(Drg);
+        Drg.clear();
+        if (bgzf_close(fp) < 0) {
+            std::cerr << "warning: file cannot be closed!" << std::endl;
+        }
+    }
+
+    fp = bgzf_open(fo.c_str(), "w");
+    ss = std::to_string(n) + "\t" + std::to_string(mt) + "\n";
+    if (bgzf_write(fp, ss.c_str(), ss.length()) != ss.length()) {
+        std::cerr << "fail to write - exit" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    // fast concatenation consider using rope data structure
+    // @see https://brianbondy.com/blog/tagged/data-structure
+    for (i = 0; i < n; ++i){
+        ss = "";
+        ss.reserve(mt+1);
+        for (k = 0; k < nm; ++k) {
+            ss += D[k][i];
+        }
+        ss += "\n";
+        if (bgzf_write(fp, ss.c_str(), ss.length()) != ss.length()) {
+            std::cerr << "fail to write" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+    if (bgzf_close(fp) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
+    clock_t cte = clock();
+    double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
+    std::cout << "elapsed secs : " << elapsed_secs << std::endl;
+    std::cout << "concat done" << std::endl;
 }
 
 void parseOptions(int argc, char **argv, const char* msg)
