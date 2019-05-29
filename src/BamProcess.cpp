@@ -199,7 +199,7 @@ void BamProcess::GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, Allel
     ale.qual = qualities[offset] - 33;
     ale.mapq = r.MapQuality();
     ale.rpr = offset + 1;
-    if (r.ReverseFlag()) {
+    if (r.ReverseFlag() || r.MateReverseFlag()) {
         ale.strand = 0;
     } else {
         ale.strand = 1;

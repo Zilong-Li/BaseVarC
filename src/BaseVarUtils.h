@@ -4,6 +4,9 @@
 #include <sstream>
 #include <string>
 #include <tuple>
+#include <vector>
+#include <numeric>
+#include <algorithm>
 
 namespace BaseVar
 {
@@ -21,6 +24,14 @@ inline std::string tostring(T d) {
     std::stringstream ss;
     ss << d;
     return ss.str();
+}
+
+template<typename T>
+std::vector<size_t> sortidx(const std::vector<T>& v) {
+    std::vector<size_t> idx(v.size());
+    std::iota(idx.begin(), idx.end(), 0);
+    std::sort(idx.begin(), idx.end(), [&v](size_t i1, size_t i2) {return v[i1] > v[i2];});
+    return idx;
 }
 
 inline std::tuple<std::string, int32_t, int32_t> splitrg(std::string rg) {

@@ -268,13 +268,18 @@ void runBaseType(int argc, char **argv)
     // begin to read bams
     String headcvg = String(CVG_HEADER);
     String headvcf = String(VCF_HEADER) + "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t";
-    int thread = opt::thread;
-    ThreadPool pool(thread);
     String tmp;
     StringV ftmp_v;
     int bc = opt::batch;
     int bt = 1 + (N - 1) / bc;    // ceiling
     if (!opt::rerun) {
+        int thread;
+        if (opt::thread > 1) thread = opt::thread;
+        else {
+            std::cerr << "threads must be larger than 1" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        ThreadPool pool(thread);
         std::vector<std::future<void>> res;
         String region = opt::region;
         StringV bams_t;
@@ -358,8 +363,11 @@ void runBaseType(int argc, char **argv)
                                 buf = NULL;
                             }
                         }
-                        aiv.push_back(ai);
-                        idx.insert({j, k++});
+                        // skip N base
+                        if (ai.base != 4) {
+                            aiv.push_back(ai);
+                            idx.insert({j, k++});
+                        }
                     }
                     buf = NULL;
                     j++;
@@ -378,7 +386,7 @@ void runBaseType(int argc, char **argv)
             }
             aiv.clear();
             idx.clear();
-            if (!(++count % 1000)) std::cerr << "basetype completed " << i << " sites" << std::endl;
+            if (!(++count % 1000)) std::cerr << "basetype completed " << count << " sites" << std::endl;
         }
     }
     if (bgzf_close(fpv) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
@@ -452,8 +460,8 @@ void bt_read(StringV bams, const String& region, const IntV& pv, String fout)
 
 BtRes bt_f(int32_t p, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, const String& chr, int32_t rg_s, const String& seq)
 {
-    int8_t alt_base, ref_base;
-    int32_t na, nc, ng, nt, ref_fwd, ref_rev, alt_fwd, alt_rev;
+    int alt_base, ref_base;
+    int32_t dep, na, nc, ng, nt, ref_fwd, ref_rev, alt_fwd, alt_rev;
     double fs, sor, left_p, right_p, twoside_p;
     double min_af = 0.001;
     BaseV bases, quals;
@@ -470,21 +478,18 @@ BtRes bt_f(int32_t p, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, c
         case 2 : ng += 1; break;
         case 3 : nt += 1; break;
         }
-        bases.push_back(a.base);
-        quals.push_back(a.qual);
+        // skip N base
+        if (a.base != 4) {
+            bases.push_back(a.base);
+            quals.push_back(a.qual);
+        }
     }
     tmp = {na, nc, ng, nt};
-    std::sort(tmp.begin(), tmp.end(), std::greater<int>());
-    if (tmp[0] != ref_base) {
-        if (tmp[0] == na) alt_base = 0;
-        else if (tmp[0] == nc) alt_base = 1;
-        else if (tmp[0] == ng) alt_base = 2;
-        else alt_base = 3;
+    std::vector<size_t> didx = BaseVar::sortidx(tmp);
+    if (didx[0] != ref_base) {
+        alt_base = didx[0];
     } else{
-        if (tmp[1] == na) alt_base = 0;
-        else if (tmp[1] == nc) alt_base = 1;
-        else if (tmp[1] == ng) alt_base = 2;
-        else alt_base = 3;
+        alt_base = didx[1];
     }
     ref_fwd = 0, ref_rev = 0, alt_fwd = 0, alt_rev = 0;
     for (auto const& a: aiv) {
@@ -511,7 +516,8 @@ BtRes bt_f(int32_t p, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, c
     } else {
         sor = 10000.0;
     }
-    sout << chr << tab << p << tab << BASE2CHAR[ref_base] << tab << aiv.size() << tab << na << tab << nc << tab << ng << tab << nt << tab << fs << tab << sor << tab << ref_fwd << col << ref_rev << col << alt_fwd << col << alt_rev << "\n";
+    dep = na + nc + ng + nt;
+    sout << chr << tab << p << tab << BASE2CHAR[ref_base] << tab << dep << tab << na << tab << nc << tab << ng << tab << nt << tab << fs << tab << sor << tab << ref_fwd << col << ref_rev << col << alt_fwd << col << alt_rev << "\n";
     res.cvg = sout.str();
     // basetype caller;
     BaseType bt(bases, quals, ref_base, min_af);

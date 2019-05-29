@@ -28,7 +28,7 @@ typedef std::vector<PosInfo> PosInfoVector;
 
 struct AlleleInfo
 {
-    unsigned int base:  3;      // 0 : A, 1 : C, 2 : G, 3 : T
+    unsigned int base:  3;      // 0 : A, 1 : C, 2 : G, 3 : T, 4 : N
     unsigned int mapq:  8;
     unsigned int qual:  8;
     unsigned int rpr:   8;
