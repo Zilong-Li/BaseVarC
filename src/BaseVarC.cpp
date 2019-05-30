@@ -5,7 +5,6 @@
 #include <iostream>
 #include <string>
 #include <ctime>
-#include <string.h>
 
 #include "htslib/bgzf.h"
 #include "RefReader.h"
@@ -86,7 +85,7 @@ static const char* VCF_HEADER =
 "##INFO=<ID=MQRankSum,Number=1,Type=Float,Description=\"Phred-score From Wilcoxon rank sum test of Alt vs. Ref read mapping qualities\">\n"
 "##INFO=<ID=ReadPosRankSum,Number=1,Type=Float,Description=\"Phred-score from Wilcoxon rank sum test of Alt vs. Ref read position bias\">\n"
 "##INFO=<ID=QD,Number=1,Type=Float,Description=\"Variant Confidence Quality by Depth\">\n";
-static const char col = ';';
+static const char comma = ',';
 static const char tab = '\t';
 
 typedef std::string String;
@@ -397,11 +396,8 @@ BtRes bt_f(int32_t p, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, c
         case 2 : ng += 1; break;
         case 3 : nt += 1; break;
         }
-        // skip N base
-        if (a.base != 4) {
-            bases.push_back(a.base);
-            quals.push_back(a.qual);
-        }
+        bases.push_back(a.base);
+        quals.push_back(a.qual);
     }
     IntV tmp = {na, nc, ng, nt};
     std::vector<size_t> didx = BaseVar::sortidx(tmp);
@@ -436,7 +432,7 @@ BtRes bt_f(int32_t p, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, c
         sor = 10000.0;
     }
     dep = na + nc + ng + nt;
-    sout << chr << tab << p << tab << BASE2CHAR[ref_base] << tab << dep << tab << na << tab << nc << tab << ng << tab << nt << tab << fs << tab << sor << tab << ref_fwd << col << ref_rev << col << alt_fwd << col << alt_rev << "\n";
+    sout << chr << tab << p << tab << BASE2CHAR[ref_base] << tab << dep << tab << na << tab << nc << tab << ng << tab << nt << tab << fs << tab << sor << tab << ref_fwd << comma << ref_rev << comma << alt_fwd << comma << alt_rev << "\n";
     res.cvg = sout.str();
     // basetype caller;
     BaseType bt(bases, quals, ref_base, min_af);

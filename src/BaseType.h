@@ -25,7 +25,6 @@ static const int8_t BASE[4] = {0, 1, 2, 3};
 class BaseType
 {
  public:
-    // REMINDME: consider using AlleleInfoVector directly
     BaseType(BaseV base, BaseV qual, int8_t ref, double minaf);
     ~BaseType() {
         delete []ind_allele_likelihood;

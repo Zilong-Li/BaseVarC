@@ -4,9 +4,9 @@ BaseType::BaseType(BaseV base, BaseV qual, int8_t ref, double minaf) : bases(bas
 {
     var_qual = 0;
     depth_total = 0;
-    init_allele_freq = new double[NTYPE]; // @WATCHOUT
-    ind_allele_likelihood = new double[nind * NTYPE]; // @WATCHOUT
     depth = { {0, 0},{1, 0},{2, 0},{3, 0} };
+    init_allele_freq = new double[NTYPE](); // @WATCHOUT
+    ind_allele_likelihood = new double[nind * NTYPE]; // @WATCHOUT
     for (int32_t i = 0; i < nind; ++i) {
         for (int j = 0; j < NTYPE; ++j) {
             if (bases[i] == BASE[j]) {
@@ -24,32 +24,31 @@ BaseType::BaseType(BaseV base, BaseV qual, int8_t ref, double minaf) : bases(bas
 
 void BaseType::SetAlleleFreq(const BaseV& bases)
 {
-    double depth_sum = 0;
-    for (auto& b : bases) {
+    int32_t depth_sum = 0;
+    for (auto b : bases) {
         depth_sum += depth[b];
     }
     for (int j = 0; j < NTYPE; ++j) {
         init_allele_freq[j] = 0;
     }
     if (depth_sum > 0) {
-        for (auto& b : bases) {
-            init_allele_freq[b] = depth[b] / depth_sum;
+        for (auto b : bases) {
+            init_allele_freq[b] = static_cast<double>(depth[b]) / depth_sum;
         }
     }
 }
 
 void BaseType::UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int32_t k)
 {
-    double *marginal_likelihood = new double[nind](); // @WATCHOUT
+    double *marginal_likelihood = new double[nind](); // maybe switch to smart pointer
     double *expect_allele_prob = new double[NTYPE]();
     double freq_sum, likelihood_sum;
     double epsilon = 0.001;
     int iter_num = 100;
     ProbV expect_prob;
+    bc.clear();
     lr.clear();
     bp.clear();
-    bc.clear();
-    // REMINDME: consider comb_v.reserve
     combs(bases, bc, k);
     for (auto const& b: bc) {
         SetAlleleFreq(b);
@@ -62,7 +61,7 @@ void BaseType::UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int3
         bp.push_back(expect_prob);
         likelihood_sum = 0;
         for (int32_t i = 0; i < nind; ++i) {
-            likelihood_sum += log(marginal_likelihood[i]);
+            likelihood_sum += std::log(marginal_likelihood[i]);
             // reset array elements to 0
             marginal_likelihood[i] = 0;
             if (i < NTYPE) {
@@ -79,27 +78,27 @@ void BaseType::UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int3
 bool BaseType::LRT()
 {
     if (depth_total == 0) return false;
-    bases.clear();
+    BaseV bases;
     for (auto b : BASE) {
         // filter bases by count freqence >= min_af
         if ((depth[b]/depth_total) >= min_af) {
             bases.push_back(b);
         }
     }
-    if (bases.size() == 0) return false;
+    int n = bases.size();
+    if (n == 0) return false;
+    int i_min;
     CombV bc;
     FreqV bp;
     ProbV lr_null, lrt_chi;
-    UpdateF(bases, bc, lr_null, bp, bases.size());
+    UpdateF(bases, bc, lr_null, bp, n);
     ProbV base_frq = bp[0];
     double lr_alt_t = lr_null[0];
     double chi_sqrt_t = 0.0;
-    int32_t n = bases.size();
-    int32_t i_min;
-    for (int32_t k = n - 1; k > 0; --k) {
+    for (int k = n - 1; k > 0; --k) {
         UpdateF(bases, bc, lr_null, bp, k);
         lrt_chi.clear();
-        for (auto lr_null_t: lr_null) {
+        for (auto & lr_null_t: lr_null) {
             lrt_chi.push_back(2.0 * (lr_alt_t - lr_null_t));
         }
         i_min = std::min_element(lrt_chi.begin(), lrt_chi.end()) - lrt_chi.begin();
@@ -149,6 +148,7 @@ bool BaseType::LRT()
 
 String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, int32_t N)
 {
+    // @TODO: switch to much faster format lib;
     char col = ';';
     char tab = '\t';
     std::unordered_map<uint8_t, String> alt_gt;
@@ -216,10 +216,8 @@ void BaseType::stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVe
 {
     ProbV ref_quals, ref_mapqs, ref_rprs;
     ProbV alt_quals, alt_mapqs, alt_rprs;
-    s.ref_fwd = 0;
-    s.ref_rev = 0;
-    s.alt_fwd = 0;
-    s.alt_rev = 0;
+    s.ref_fwd = 0; s.ref_rev = 0;
+    s.alt_fwd = 0; s.alt_rev = 0;
     for (auto const& ai: aiv) {
         if (ai.base == ref_base) {
             ref_quals.push_back(ai.qual);
