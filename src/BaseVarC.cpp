@@ -118,11 +118,12 @@ namespace opt {
     static std::string input;
     static std::string reference;
     static std::string posfile;
+    static std::string group;
     static std::string region;
     static std::string output;
 }
 
-static const char* shortopts = "hvl:r:p:g:o:q:t:b:";
+static const char* shortopts = "hvl:r:p:s:o:q:t:b:g:";
 
 static const struct option longopts[] = {
   { "help",                    no_argument, NULL, 'h' },
@@ -132,7 +133,8 @@ static const struct option longopts[] = {
   { "input",                   required_argument, NULL, 'l' },
   { "reference",               required_argument, NULL, 'r' },
   { "posfile",                 required_argument, NULL, 'p' },
-  { "region",                  required_argument, NULL, 'g' },
+  { "group",                   required_argument, NULL, 'g' },
+  { "region",                  required_argument, NULL, 's' },
   { "output",                  required_argument, NULL, 'o' },
   { "batch",                   required_argument, NULL, 'b' },
   { "thread",                  required_argument, NULL, 't' },
@@ -591,7 +593,8 @@ void parseOptions(int argc, char **argv, const char* msg)
         case 'l': arg >> opt::input; break;
         case 'r': arg >> opt::reference; break;
         case 'p': arg >> opt::posfile; break;
-        case 'g': arg >> opt::region; break;
+        case 's': arg >> opt::region; break;
+        case 'g': arg >> opt::group; break;
         case 'o': arg >> opt::output; break;
         case  8 : opt::rerun   = true; break;
         case  7 : opt::load    = true; break;
