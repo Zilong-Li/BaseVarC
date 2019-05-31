@@ -79,7 +79,7 @@ bool BaseType::LRT()
 {
     if (depth_total == 0) return false;
     BaseV bases;
-    for (auto b : BASE) {
+    for (auto b : this->BASE) {
         // filter bases by count freqence >= min_af
         if ((depth[b]/depth_total) >= min_af) {
             bases.push_back(b);

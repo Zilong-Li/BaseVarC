@@ -106,6 +106,7 @@ void parseOptions(int argc, char **argv, const char* msg);
 
 void bt_read(StringV bams, const String& region, const IntV& pv, String fout);
 BtRes bt_f(int32_t p, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, const String& chr, int32_t rg_s, const String& seq);
+String bt_group();
 
 namespace opt {
     static bool verbose = false;
