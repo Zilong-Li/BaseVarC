@@ -57,18 +57,18 @@ void BaseType::UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int3
         if (freq_sum == 0) continue;  // skip coverage = 0, this may be redundant;
         // run EM
         EM(init_allele_freq, ind_allele_likelihood, marginal_likelihood, expect_allele_prob, nind, NTYPE, iter_num, epsilon);
-        expect_prob.assign(expect_allele_prob, expect_allele_prob + NTYPE);
-        bp.push_back(expect_prob);
         likelihood_sum = 0;
         for (int32_t i = 0; i < nind; ++i) {
             likelihood_sum += std::log(marginal_likelihood[i]);
             // reset array elements to 0
             marginal_likelihood[i] = 0;
-            if (i < NTYPE) {
-                expect_allele_prob[i] = 0;
-            }
+        }
+        for (int i = 0; i < NTYPE; ++i) {
+            expect_prob.push_back(expect_allele_prob[i]);
+            expect_allele_prob[i] = 0;
         }
         lr.push_back(likelihood_sum);
+        bp.push_back(expect_prob);
     }
 
     delete []marginal_likelihood;
