@@ -269,8 +269,12 @@ void runBaseType(int argc, char **argv)
         }
         std::istringstream iss(sams);
         int i = 0;
-        while (std::getline(iss, id)) {
-            grp = popg_m.at(id);
+        while (std::getline(iss, id, '\t')) {
+            if (popg_m.count(id)) {
+                grp = popg_m.at(id);
+            } else {
+                continue;
+            }
             if (popg_idx.count(grp)) {
                 popg_idx[grp].push_back(i++);
             } else {
@@ -279,8 +283,6 @@ void runBaseType(int argc, char **argv)
             }
         }
     }
-    size_t pos;
-    String token;
     AlleleInfo ai;
     AlleleInfoVector aiv;
     DepM idx;
@@ -490,21 +492,24 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
             if (bt_success) {
                 BaseType gr_bt(gr_bases, gr_quals, ref_base, min_af);
                 gr_bt.SetBase(base_comb);
+                gr_bt.LRT();
                 gr_af = "";
-                if (gr_bt.LRT()) {
-                    for (auto b : gr_bt.alt_bases) {
-                        if (gr_bt.af_lrt.count(b)) {
-                            gr_af += std::to_string(gr_bt.af_lrt[b]) + ",";
-                        } else {
-                            gr_af += "0,";
-                        }
+                for (auto b : bt.alt_bases) {
+                    if (gr_bt.af_lrt.count(b)) {
+                        gr_af += std::to_string(gr_bt.af_lrt[b]) + ",";
+                    } else {
+                        gr_af += "0,";
                     }
                 }
                 gr_af.pop_back();
-                gr_info += it->first + "_AF=" + gr_af;
+                gr_info += it->first + "_AF=" + gr_af + ";";
                 gr_bases.clear();
                 gr_quals.clear();
             }
+        }
+        if (bt_success && gr_info.length()) {
+            gr_info.pop_back();
+            std::cout << p << '\t' << gr_info << std::endl;
         }
     }
     if (bt_success) {
