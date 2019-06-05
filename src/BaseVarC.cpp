@@ -31,7 +31,8 @@ static const char* BASETYPE_MESSAGE =
 "  --input,      -l        BAM/CRAM files list, one file per row.\n"
 "  --output,     -o        Output filename prefix\n"
 "  --reference,  -r        Reference file\n"
-"  --region,     -g        Samtools-like region\n"
+"  --region,     -s        Samtools-like region\n"
+"  --group,      -g        Population group information\n"
 "  --mapq,       -q <INT>  Mapping quality >= INT. [10]\n"
 "  --thread,     -t <INT>  Number of thread\n"
 "  --batch,      -b <INT>  Number of samples each batch\n"
@@ -85,13 +86,12 @@ static const char* VCF_HEADER =
 "##INFO=<ID=MQRankSum,Number=1,Type=Float,Description=\"Phred-score From Wilcoxon rank sum test of Alt vs. Ref read mapping qualities\">\n"
 "##INFO=<ID=ReadPosRankSum,Number=1,Type=Float,Description=\"Phred-score from Wilcoxon rank sum test of Alt vs. Ref read position bias\">\n"
 "##INFO=<ID=QD,Number=1,Type=Float,Description=\"Variant Confidence Quality by Depth\">\n";
-static const char comma = ',';
-static const char tab = '\t';
 
 typedef std::string String;
 typedef std::vector<String> StringV;
 typedef std::vector<int32_t> IntV;
 typedef std::vector<PosAlleleMap> PosAlleleMapVec;
+typedef std::unordered_map<String, IntV> GroupIdx;
 
 struct BtRes
 {
@@ -105,8 +105,8 @@ void runConcat(int argc, char **argv);
 void parseOptions(int argc, char **argv, const char* msg);
 
 void bt_read(StringV bams, const String& region, const IntV& pv, String fout);
-BtRes bt_f(int32_t p, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, const String& chr, int32_t rg_s, const String& seq);
-String bt_group();
+BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, const String& chr, int32_t rg_s, const String& seq);
+// String bt_group(const GroupIdx& popg_idx, const AlleleInfoVector& aiv, const DepM& idx, const BaseV& base);
 
 namespace opt {
     static bool verbose = false;
@@ -242,13 +242,14 @@ void runBaseType(int argc, char **argv)
         fpiv.push_back(fpi);
     }
     kstring_t ks = {0, 0, NULL};
+    String sams;
     for (auto & fp: fpiv) {
         if (bgzf_getline(fp, '\n', &ks) >= 0) {
-            headvcf += (String)ks.s;
+            sams += (String)ks.s;
         }
     }
-    headvcf.pop_back();
-    headvcf += "\n";
+    sams.pop_back();
+    headvcf += sams + "\n";
     if (bgzf_write(fpv, headvcf.c_str(), headvcf.length()) != headvcf.length()) {
         std::cerr << "fail to write - exit" << std::endl;
         exit(EXIT_FAILURE);
@@ -256,6 +257,27 @@ void runBaseType(int argc, char **argv)
     if (bgzf_write(fpc, headcvg.c_str(), headcvg.length()) != headcvg.length()) {
         std::cerr << "fail to write - exit" << std::endl;
         exit(EXIT_FAILURE);
+    }
+    // fetch popgroup information
+    GroupIdx popg_idx;
+    if (opt::group.length()) {
+        std::ifstream ifg(opt::group);
+        String id, grp;
+        std::unordered_map<String, String> popg_m;
+        while (ifg >> id >> grp) {
+            popg_m.insert({id, grp});
+        }
+        std::istringstream iss(sams);
+        int i = 0;
+        while (std::getline(iss, id)) {
+            grp = popg_m.at(id);
+            if (popg_idx.count(grp)) {
+                popg_idx[grp].push_back(i++);
+            } else {
+                IntV v{i++};
+                popg_idx.insert({grp, v});
+            }
+        }
     }
     size_t pos;
     String token;
@@ -298,7 +320,7 @@ void runBaseType(int argc, char **argv)
             }
         }
         if (aiv.size() > 0) {
-            auto btr = bt_f(p, aiv, idx, N, chr, rg_s, seq);
+            auto btr = bt_f(p, popg_idx, aiv, idx, N, chr, rg_s, seq);
             if (btr.vcf != "NA" && bgzf_write(fpv, btr.vcf.c_str(), btr.vcf.length()) != btr.vcf.length()) {
                 std::cerr << "fail to write - exit" << std::endl;
                 exit(EXIT_FAILURE);
@@ -380,9 +402,9 @@ void bt_read(StringV bams, const String& region, const IntV& pv, String fout)
     if (bgzf_close(fp) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
 }
 
-BtRes bt_f(int32_t p, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, const String& chr, int32_t rg_s, const String& seq)
+BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, const String& chr, int32_t rg_s, const String& seq)
 {
-    int alt_base, ref_base;
+    int8_t alt_base, ref_base;
     int32_t dep, na, nc, ng, nt, ref_fwd, ref_rev, alt_fwd, alt_rev;
     double fs, sor, left_p, right_p, twoside_p;
     double min_af = 0.001;
@@ -391,7 +413,7 @@ BtRes bt_f(int32_t p, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, c
     BtRes res;
     // output cvg;
     ref_base = BASE_INT8_TABLE[static_cast<int>(seq[p - rg_s])];
-    na = 0, nc = 0, ng = 0, nt = 0;
+    na = 0; nc = 0; ng = 0; nt = 0;
     for (auto const& a: aiv) {
         switch (a.base) {
         case 0 : na += 1; break;
@@ -435,11 +457,57 @@ BtRes bt_f(int32_t p, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, c
         sor = 10000.0;
     }
     dep = na + nc + ng + nt;
-    sout << chr << tab << p << tab << BASE2CHAR[ref_base] << tab << dep << tab << na << tab << nc << tab << ng << tab << nt << tab << fs << tab << sor << tab << ref_fwd << comma << ref_rev << comma << alt_fwd << comma << alt_rev << "\n";
+    sout << chr << '\t' << p << '\t' << BASE2CHAR[ref_base] << '\t' << dep << '\t' << na << '\t' << nc << '\t' << ng << '\t' << nt << '\t' << fs << '\t' << sor << '\t' << ref_fwd << ',' << ref_rev << ',' << alt_fwd << ',' << alt_rev << "\n";
     res.cvg = sout.str();
     // basetype caller;
     BaseType bt(bases, quals, ref_base, min_af);
-    if (bt.LRT()) {
+    const bool bt_success = bt.LRT();
+    BaseV base_comb{ref_base};
+    base_comb.insert(base_comb.end(), bt.alt_bases.begin(), bt.alt_bases.end());
+    // popgroup depth
+    std::ostringstream sgrp;
+    if (!popg_idx.empty()) {
+        BaseV gr_bases, gr_quals;
+        String gr_af, gr_info;
+        for (GroupIdx::const_iterator it = popg_idx.begin(); it != popg_idx.end(); ++it) {
+            na = 0; nc = 0; ng = 0; nt = 0;
+            for (auto i : it->second) {
+                if (idx.count(i)) {
+                    auto & a = aiv[idx.at(i)];
+                    switch (a.base) {
+                    case 0 : na += 1; break;
+                    case 1 : nc += 1; break;
+                    case 2 : ng += 1; break;
+                    case 3 : nt += 1; break;
+                    }
+                    if (bt_success) {
+                        gr_bases.push_back(a.base);
+                        gr_quals.push_back(a.qual);
+                    }
+                }
+            }
+            sgrp << na << ':' << nc << ':' << ng << ':' << nt << '\t';
+            if (bt_success) {
+                BaseType gr_bt(gr_bases, gr_quals, ref_base, min_af);
+                gr_bt.SetBase(base_comb);
+                gr_af = "";
+                if (gr_bt.LRT()) {
+                    for (auto b : gr_bt.alt_bases) {
+                        if (gr_bt.af_lrt.count(b)) {
+                            gr_af += std::to_string(gr_bt.af_lrt[b]) + ",";
+                        } else {
+                            gr_af += "0,";
+                        }
+                    }
+                }
+                gr_af.pop_back();
+                gr_info += it->first + "_AF=" + gr_af;
+                gr_bases.clear();
+                gr_quals.clear();
+            }
+        }
+    }
+    if (bt_success) {
         res.vcf = bt.WriteVcf(bt, chr, p, ref_base, aiv, idx, N);
     } else {
         res.vcf = "NA";

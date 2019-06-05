@@ -19,7 +19,7 @@ typedef std::vector<int8_t> BaseV;
 typedef std::vector<BaseV> CombV;
 typedef std::unordered_map<int32_t, int32_t> DepM;
 typedef std::unordered_map<int32_t, String> SamM;
-
+static const int BASE[4] = {0, 1, 2, 3};
 
 class BaseType
 {
@@ -30,7 +30,7 @@ class BaseType
         delete []init_allele_freq;
     }
 
-    void SetBase (const BaseV& v) { BASE = v; }
+    void SetBase (const BaseV& v) { base_comb = v; }
     bool LRT();
     String WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, int32_t N);
 
@@ -43,7 +43,7 @@ class BaseType
  private:
     BaseV bases;
     BaseV quals;
-    BaseV BASE{0, 1, 2, 3};
+    BaseV base_comb{0, 1, 2, 3};
     const int8_t ref_base;
     const double min_af;
     const int32_t nind;

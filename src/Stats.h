@@ -2,8 +2,7 @@
 #define __BASEVARC_STATS_H__
 
 #include "BamProcess.h"
-#include "ranksum.h"
-#include "em.h"
+#include "algorithm.h"
 #include "htslib/kfunc.h"
 
 static const char STRAND[2] = {'-', '+'};

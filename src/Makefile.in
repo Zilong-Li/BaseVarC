@@ -101,7 +101,7 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_BaseVarC_OBJECTS = BaseVarC-BaseVarC.$(OBJEXT) \
 	BaseVarC-BamProcess.$(OBJEXT) BaseVarC-BaseType.$(OBJEXT) \
-	BaseVarC-em.$(OBJEXT) BaseVarC-ranksum.$(OBJEXT)
+	BaseVarC-algorithm.$(OBJEXT)
 BaseVarC_OBJECTS = $(am_BaseVarC_OBJECTS)
 am__DEPENDENCIES_1 =
 BaseVarC_DEPENDENCIES = $(top_builddir)/SeqLib/src/libseqlib.a \
@@ -123,8 +123,8 @@ depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/BaseVarC-BamProcess.Po \
 	./$(DEPDIR)/BaseVarC-BaseType.Po \
-	./$(DEPDIR)/BaseVarC-BaseVarC.Po ./$(DEPDIR)/BaseVarC-em.Po \
-	./$(DEPDIR)/BaseVarC-ranksum.Po
+	./$(DEPDIR)/BaseVarC-BaseVarC.Po \
+	./$(DEPDIR)/BaseVarC-algorithm.Po
 am__mv = mv -f
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -286,7 +286,7 @@ BaseVarC_LDADD = \
 		$(top_builddir)/SeqLib/htslib/libhts.a \
 		$(LDFLAGS)
 
-BaseVarC_SOURCES = BaseVarC.cpp BamProcess.cpp BaseType.cpp em.c ranksum.c
+BaseVarC_SOURCES = BaseVarC.cpp BamProcess.cpp BaseType.cpp algorithm.c
 all: all-am
 
 .SUFFIXES:
@@ -376,8 +376,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaseVarC-BamProcess.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaseVarC-BaseType.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaseVarC-BaseVarC.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaseVarC-em.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaseVarC-ranksum.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaseVarC-algorithm.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -399,33 +398,19 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
-BaseVarC-em.o: em.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(BaseVarC_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT BaseVarC-em.o -MD -MP -MF $(DEPDIR)/BaseVarC-em.Tpo -c -o BaseVarC-em.o `test -f 'em.c' || echo '$(srcdir)/'`em.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/BaseVarC-em.Tpo $(DEPDIR)/BaseVarC-em.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='em.c' object='BaseVarC-em.o' libtool=no @AMDEPBACKSLASH@
+BaseVarC-algorithm.o: algorithm.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(BaseVarC_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT BaseVarC-algorithm.o -MD -MP -MF $(DEPDIR)/BaseVarC-algorithm.Tpo -c -o BaseVarC-algorithm.o `test -f 'algorithm.c' || echo '$(srcdir)/'`algorithm.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/BaseVarC-algorithm.Tpo $(DEPDIR)/BaseVarC-algorithm.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='algorithm.c' object='BaseVarC-algorithm.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(BaseVarC_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o BaseVarC-em.o `test -f 'em.c' || echo '$(srcdir)/'`em.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(BaseVarC_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o BaseVarC-algorithm.o `test -f 'algorithm.c' || echo '$(srcdir)/'`algorithm.c
 
-BaseVarC-em.obj: em.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(BaseVarC_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT BaseVarC-em.obj -MD -MP -MF $(DEPDIR)/BaseVarC-em.Tpo -c -o BaseVarC-em.obj `if test -f 'em.c'; then $(CYGPATH_W) 'em.c'; else $(CYGPATH_W) '$(srcdir)/em.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/BaseVarC-em.Tpo $(DEPDIR)/BaseVarC-em.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='em.c' object='BaseVarC-em.obj' libtool=no @AMDEPBACKSLASH@
+BaseVarC-algorithm.obj: algorithm.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(BaseVarC_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT BaseVarC-algorithm.obj -MD -MP -MF $(DEPDIR)/BaseVarC-algorithm.Tpo -c -o BaseVarC-algorithm.obj `if test -f 'algorithm.c'; then $(CYGPATH_W) 'algorithm.c'; else $(CYGPATH_W) '$(srcdir)/algorithm.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/BaseVarC-algorithm.Tpo $(DEPDIR)/BaseVarC-algorithm.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='algorithm.c' object='BaseVarC-algorithm.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(BaseVarC_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o BaseVarC-em.obj `if test -f 'em.c'; then $(CYGPATH_W) 'em.c'; else $(CYGPATH_W) '$(srcdir)/em.c'; fi`
-
-BaseVarC-ranksum.o: ranksum.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(BaseVarC_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT BaseVarC-ranksum.o -MD -MP -MF $(DEPDIR)/BaseVarC-ranksum.Tpo -c -o BaseVarC-ranksum.o `test -f 'ranksum.c' || echo '$(srcdir)/'`ranksum.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/BaseVarC-ranksum.Tpo $(DEPDIR)/BaseVarC-ranksum.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ranksum.c' object='BaseVarC-ranksum.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(BaseVarC_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o BaseVarC-ranksum.o `test -f 'ranksum.c' || echo '$(srcdir)/'`ranksum.c
-
-BaseVarC-ranksum.obj: ranksum.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(BaseVarC_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT BaseVarC-ranksum.obj -MD -MP -MF $(DEPDIR)/BaseVarC-ranksum.Tpo -c -o BaseVarC-ranksum.obj `if test -f 'ranksum.c'; then $(CYGPATH_W) 'ranksum.c'; else $(CYGPATH_W) '$(srcdir)/ranksum.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/BaseVarC-ranksum.Tpo $(DEPDIR)/BaseVarC-ranksum.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ranksum.c' object='BaseVarC-ranksum.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(BaseVarC_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o BaseVarC-ranksum.obj `if test -f 'ranksum.c'; then $(CYGPATH_W) 'ranksum.c'; else $(CYGPATH_W) '$(srcdir)/ranksum.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(BaseVarC_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o BaseVarC-algorithm.obj `if test -f 'algorithm.c'; then $(CYGPATH_W) 'algorithm.c'; else $(CYGPATH_W) '$(srcdir)/algorithm.c'; fi`
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -613,8 +598,7 @@ distclean: distclean-am
 		-rm -f ./$(DEPDIR)/BaseVarC-BamProcess.Po
 	-rm -f ./$(DEPDIR)/BaseVarC-BaseType.Po
 	-rm -f ./$(DEPDIR)/BaseVarC-BaseVarC.Po
-	-rm -f ./$(DEPDIR)/BaseVarC-em.Po
-	-rm -f ./$(DEPDIR)/BaseVarC-ranksum.Po
+	-rm -f ./$(DEPDIR)/BaseVarC-algorithm.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -663,8 +647,7 @@ maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/BaseVarC-BamProcess.Po
 	-rm -f ./$(DEPDIR)/BaseVarC-BaseType.Po
 	-rm -f ./$(DEPDIR)/BaseVarC-BaseVarC.Po
-	-rm -f ./$(DEPDIR)/BaseVarC-em.Po
-	-rm -f ./$(DEPDIR)/BaseVarC-ranksum.Po
+	-rm -f ./$(DEPDIR)/BaseVarC-algorithm.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

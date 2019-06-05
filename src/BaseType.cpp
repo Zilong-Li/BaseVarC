@@ -79,7 +79,7 @@ bool BaseType::LRT()
 {
     if (depth_total == 0) return false;
     BaseV bases;
-    for (auto b : this->BASE) {
+    for (auto b : base_comb) {
         // filter bases by count freqence >= min_af
         if ((depth[b]/depth_total) >= min_af) {
             bases.push_back(b);
@@ -129,17 +129,13 @@ bool BaseType::LRT()
                 var_qual = 0.0;
                 return true;
             }
-            // @FIXME check out the chisf precision
             chi_prob = chisf(chi_sqrt_t, 1.0);  // may be nan value;
             if (chi_prob) {
                 var_qual = -10 * log10(chi_prob);
             } else {
                 var_qual = 10000.0;
             }
-        }
-        if (var_qual == 0) {
-            // output -0 to 0.0;
-            var_qual = 0.0;
+            if (var_qual == 0) var_qual = 0.0;  // output -0.0 to 0.0;
         }
         return true;
     }
