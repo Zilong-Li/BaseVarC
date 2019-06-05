@@ -28,7 +28,7 @@ static const char* BASETYPE_MESSAGE =
 "Contact: Zilong Li [lizilong@bgi.com]\n"
 "Usage  : BaseVarC basetype [options]\n\n"
 "Commands:\n"
-"  --input,      -l        BAM/CRAM files list, one file per row.\n"
+"  --input,      -i        BAM/CRAM files list, one file per row.\n"
 "  --output,     -o        Output filename prefix\n"
 "  --reference,  -r        Reference file\n"
 "  --region,     -s        Samtools-like region\n"
@@ -46,7 +46,7 @@ static const char* POPMATRIX_MESSAGE =
 "Contact: Zilong Li [lizilong@bgi.com]\n"
 "Usage  : BaseVarC popmatrix [options]\n\n"
 "Commands:\n"
-"  --input,      -l        BAM/CRAM files list, one file per row.\n"
+"  --input,      -i        BAM/CRAM files list, one file per row.\n"
 "  --posfile,    -p        Position file <CHRID POS REF ALT>\n"
 "  --output,     -o        Output filename prefix(.mat.gz will be added auto)\n"
 "  --mapq,       -q <INT>  Mapping quality >= INT. [10]\n"
@@ -58,7 +58,7 @@ static const char* CONCAT_MESSAGE =
 "Contact: Zilong Li [lizilong@bgi.com]\n"
 "Usage  : BaseVarC concat [options]\n\n"
 "Commands:\n"
-"  --input,      -l       List of matrix files for concat, one file per row.\n"
+"  --input,      -i       List of matrix files for concat, one file per row.\n"
 "  --output,     -o       Output filename prefix(.gz will be added auto)\n"
 "\nReport bugs to lizilong@bgi.com \n\n";
 
@@ -123,14 +123,14 @@ namespace opt {
     static std::string output;
 }
 
-static const char* shortopts = "hvl:r:p:s:o:q:t:b:g:";
+static const char* shortopts = "hvi:r:p:s:o:q:t:b:g:";
 
 static const struct option longopts[] = {
   { "help",                    no_argument, NULL, 'h' },
   { "verbose",                 no_argument, NULL, 'v' },
   { "rerun",                   no_argument, NULL,  8  },
   { "load",                    no_argument, NULL,  7  },
-  { "input",                   required_argument, NULL, 'l' },
+  { "input",                   required_argument, NULL, 'i' },
   { "reference",               required_argument, NULL, 'r' },
   { "posfile",                 required_argument, NULL, 'p' },
   { "group",                   required_argument, NULL, 'g' },
@@ -663,7 +663,7 @@ void parseOptions(int argc, char **argv, const char* msg)
         case 'q': arg >> opt::mapq; break;
         case 'b': arg >> opt::batch; break;
         case 't': arg >> opt::thread; break;
-        case 'l': arg >> opt::input; break;
+        case 'i': arg >> opt::input; break;
         case 'r': arg >> opt::reference; break;
         case 'p': arg >> opt::posfile; break;
         case 's': arg >> opt::region; break;
