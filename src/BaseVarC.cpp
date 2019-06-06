@@ -208,7 +208,7 @@ void runBaseType(int argc, char **argv)
         StringV bams_t;
         std::cerr << "begin to read bams and save as tmp file" << std::endl;
         for (int i = 0; i < bt; ++i) {
-            tmp = opt::output + ".batch." + std::to_string(i) + ".tmp";
+            tmp = opt::output + ".batch." + BaseVar::tostring(i) + ".tmp";
             ftmp_v.push_back(tmp);
             if (i == bt - 1) {
                 StringV t(bams.begin() + i * bc, bams.end());
@@ -226,7 +226,7 @@ void runBaseType(int argc, char **argv)
         if (opt::load) exit(EXIT_SUCCESS);
     } else {
         for (int i = 0; i < bt; ++i) {
-            tmp = opt::output + ".batch." + std::to_string(i) + ".tmp";
+            tmp = opt::output + ".batch." + BaseVar::tostring(i) + ".tmp";
             ftmp_v.push_back(tmp);
         }
     }
@@ -260,7 +260,6 @@ void runBaseType(int argc, char **argv)
         std::ifstream ifg(opt::group);
         String id, grp;
         std::unordered_map<String, String> popg_m;
-        // std::set<String> groups;
         while (ifg >> id >> grp) {
             popg_m.insert({id, grp});
         }
@@ -475,7 +474,6 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
     base_comb.insert(base_comb.end(), bt.alt_bases.begin(), bt.alt_bases.end());
     // popgroup depth
     InfoM info;
-    // std::ostringstream ossg;
     if (!popg_idx.empty()) {
         BaseV gr_bases, gr_quals;
         String gr_af;
@@ -505,13 +503,12 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
                 gr_af = "";
                 for (auto b : bt.alt_bases) {
                     if (gr_bt.af_lrt.count(b)) {
-                        gr_af += std::to_string(gr_bt.af_lrt[b]) + ",";
+                        gr_af += BaseVar::tostring(gr_bt.af_lrt[b]) + ",";
                     } else {
                         gr_af += "0,";
                     }
                 }
                 gr_af.pop_back();
-                // gr_info += it->first + "_AF=" + gr_af + ";";
                 info.insert({it->first + "_AF", gr_af});
                 gr_bases.clear();
                 gr_quals.clear();
@@ -549,7 +546,7 @@ void runPopMatrix (int argc, char **argv)
 
     const int32_t N = bams.size();
     const int32_t M = pv.size();
-    String out = std::to_string(N) + "\t" + std::to_string(M) + "\n";
+    String out = BaseVar::tostring(N) + "\t" + BaseVar::tostring(M) + "\n";
     BGZF* fp = bgzf_open(opt::output.c_str(), "w");
     if (bgzf_write(fp, out.c_str(), out.length()) != out.length()) {
         std::cerr << "fail to write - exit" << std::endl;
@@ -636,7 +633,7 @@ void runConcat(int argc, char **argv)
     }
 
     fp = bgzf_open(fo.c_str(), "w");
-    ss = std::to_string(n) + "\t" + std::to_string(mt) + "\n";
+    ss = BaseVar::tostring(n) + "\t" + BaseVar::tostring(mt) + "\n";
     if (bgzf_write(fp, ss.c_str(), ss.length()) != ss.length()) {
         std::cerr << "fail to write - exit" << std::endl;
         exit(EXIT_FAILURE);

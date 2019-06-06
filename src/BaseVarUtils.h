@@ -21,7 +21,7 @@ struct Line
 
 template<typename T>
 inline std::string tostring(T d) {
-    std::stringstream ss;
+    std::ostringstream ss;
     ss << d;
     return ss.str();
 }
