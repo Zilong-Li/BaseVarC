@@ -268,17 +268,18 @@ void runBaseType(int argc, char **argv)
             popg_m.insert({id, grp});
         }
         std::istringstream iss(sams);
-        int i = 0;
+        int i = -1;
         while (std::getline(iss, id, '\t')) {
+            i++;
             if (popg_m.count(id)) {
                 grp = popg_m.at(id);
             } else {
                 continue;
             }
             if (popg_idx.count(grp)) {
-                popg_idx[grp].push_back(i++);
+                popg_idx[grp].push_back(i);
             } else {
-                IntV v{i++};
+                IntV v{i};
                 popg_idx.insert({grp, v});
             }
         }
@@ -467,6 +468,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
     BaseV base_comb{ref_base};
     base_comb.insert(base_comb.end(), bt.alt_bases.begin(), bt.alt_bases.end());
     // popgroup depth
+    InfoM info;
     std::ostringstream sgrp;
     if (!popg_idx.empty()) {
         BaseV gr_bases, gr_quals;
@@ -503,6 +505,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
                 }
                 gr_af.pop_back();
                 gr_info += it->first + "_AF=" + gr_af + ";";
+                info.insert({it->first + "_AF", gr_af});
                 gr_bases.clear();
                 gr_quals.clear();
             }
@@ -513,7 +516,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
         }
     }
     if (bt_success) {
-        res.vcf = bt.WriteVcf(bt, chr, p, ref_base, aiv, idx, N);
+        res.vcf = bt.WriteVcf(bt, chr, p, ref_base, aiv, idx, info, N);
     } else {
         res.vcf = "NA";
     }
@@ -676,7 +679,7 @@ void parseOptions(int argc, char **argv, const char* msg)
         }
     }
     // todo : need more check
-    if (die || help || (opt::input.empty() && opt::output.empty())) {
+    if (die || help || opt::input.empty() || opt::output.empty()) {
         std::cerr << msg;
         if (die) exit(EXIT_FAILURE);
         else exit(EXIT_SUCCESS);

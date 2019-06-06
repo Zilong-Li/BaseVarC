@@ -17,8 +17,8 @@ typedef std::vector<double> ProbV;
 typedef std::vector<ProbV> FreqV;
 typedef std::vector<int8_t> BaseV;
 typedef std::vector<BaseV> CombV;
+typedef std::map<String, String> InfoM;
 typedef std::unordered_map<int32_t, int32_t> DepM;
-typedef std::unordered_map<int32_t, String> SamM;
 static const int BASE[4] = {0, 1, 2, 3};
 
 class BaseType
@@ -32,7 +32,7 @@ class BaseType
 
     void SetBase (const BaseV& v) { base_comb = v; }
     bool LRT();
-    String WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, int32_t N);
+    String WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, InfoM& info, int32_t N);
 
     double var_qual;
     BaseV alt_bases;

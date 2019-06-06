@@ -142,10 +142,9 @@ bool BaseType::LRT()
     return false;
 }
 
-String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, int32_t N)
+String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, InfoM& info, int32_t N)
 {
     // @TODO: switch to much faster format lib;
-    char col = ';';
     char tab = '\t';
     std::unordered_map<uint8_t, String> alt_gt;
     String gt;
@@ -171,8 +170,8 @@ String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, in
     Stat st;
     stats(ref_base, bt.alt_bases, aiv, st);
     double ad_sum = 0;
-    String ac = "CM_AC=", af = "CM_AF=", caf = "CM_CAF=";
-    std::stringstream alt_s;
+    String ac, af, caf;
+    std::ostringstream alt_s;
     for (auto b : bt.alt_bases) {
         ad_sum += bt.depth.at(b);
         alt_s << BASE2CHAR[b] << ",";
@@ -182,29 +181,35 @@ String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, in
     }
     String alt = alt_s.str();
     // remove the last char;
-    ac.pop_back();
-    af.pop_back();
-    caf.pop_back();
-    alt.pop_back();
-    samgt.pop_back();
-    String qd = "QD=" + std::to_string(bt.var_qual/ad_sum);
-    String dp = "CM_DP=" + std::to_string(static_cast<int>(bt.depth_total));
-    String mq = "MQRankSum=" + std::to_string(st.phred_mapq);
-    String rp = "ReadPosRankSum=" + std::to_string(st.phred_rpr);
-    String bq = "BaseQRankSum=" + std::to_string(st.phred_qual);
-    String fs = "FS=" + std::to_string(st.fs);
-    String sor = "SOR=" + std::to_string(st.sor);
-    String sb_ref = "SB_REF=" + std::to_string(st.ref_fwd) + "," + std::to_string(st.ref_rev);
-    String sb_alt = "SB_ALT=" + std::to_string(st.alt_fwd) + "," + std::to_string(st.alt_rev);
+    alt.pop_back(); samgt.pop_back();
+    ac.pop_back(); info.insert({"CM_AC", ac});
+    af.pop_back(); info.insert({"CM_AF", af});
+    caf.pop_back(); info.insert({"CM_CAF", caf});
+    info.insert({"QD", std::to_string(bt.var_qual/ad_sum)});
+    info.insert({"CM_DP", std::to_string(static_cast<int>(bt.depth_total))});
+    info.insert({"MQRankSum", std::to_string(st.phred_mapq)});
+    info.insert({"ReadPosRankSum", std::to_string(st.phred_rpr)});
+    info.insert({"BaseQRankSum", std::to_string(st.phred_qual)});
+    info.insert({"FS", std::to_string(st.fs)});
+    info.insert({"SOR", std::to_string(st.sor)});
+    info.insert({"SB_REF", std::to_string(st.ref_fwd) + "," + std::to_string(st.ref_rev)});
+    info.insert({"SB_ALT", std::to_string(st.alt_fwd) + "," + std::to_string(st.alt_rev)});
     String qt;
     if (bt.var_qual > QUAL_THRESHOLD) {
         qt = ".";
     } else {
         qt = "LowQual";
     }
-    std::ostringstream sout;
-    sout << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab << bq << col << ac << col << af << col << caf << col << dp << col << fs << col << mq << col << qd << col << rp << col << sb_alt << col << sb_ref << col << sor << tab << samgt << "\n";
-    String out = sout.str();
+    std::ostringstream oss;
+    oss << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab;
+    String out = oss.str();
+    for (InfoM::iterator it = info.begin(); it != info.end(); ++it) {
+        out += it->first + "=" + it->second + ";";
+    }
+    out.pop_back();
+    out += tab + samgt + "\n";
+    // sout << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab << bq << col << ac << col << af << col << caf << col << dp << col << fs << col << mq << col << qd << col << rp << col << sb_alt << col << sb_ref << col << sor << tab << samgt << "\n";
+    // String out = sout.str();
     return out;
 }
 
