@@ -65,7 +65,7 @@ static const char* CONCAT_MESSAGE =
 static const char* CVG_HEADER =
 "##fileformat=CVGv1.0\n"
 "##Group information is the depth of A:C:G:T\n"
-"#CHROM\tPOS\tREF\tDepth\tA\tC\tG\tT\tFS\tSOR\tStrand_Coverage(REF_FWD,REF_REV,ALT_FWD,ALT_REV)\n";
+"#CHROM\tPOS\tREF\tDepth\tA\tC\tG\tT\tFS\tSOR\tStrand_Coverage(REF_FWD,REF_REV,ALT_FWD,ALT_REV)";
 
 static const char* VCF_HEADER =
 "##fileformat=VCFv4.2\n"
@@ -91,7 +91,7 @@ typedef std::string String;
 typedef std::vector<String> StringV;
 typedef std::vector<int32_t> IntV;
 typedef std::vector<PosAlleleMap> PosAlleleMapVec;
-typedef std::unordered_map<String, IntV> GroupIdx;
+typedef std::map<String, IntV> GroupIdx;
 
 struct BtRes
 {
@@ -254,16 +254,13 @@ void runBaseType(int argc, char **argv)
         std::cerr << "fail to write - exit" << std::endl;
         exit(EXIT_FAILURE);
     }
-    if (bgzf_write(fpc, headcvg.c_str(), headcvg.length()) != headcvg.length()) {
-        std::cerr << "fail to write - exit" << std::endl;
-        exit(EXIT_FAILURE);
-    }
     // fetch popgroup information
     GroupIdx popg_idx;
     if (opt::group.length()) {
         std::ifstream ifg(opt::group);
         String id, grp;
         std::unordered_map<String, String> popg_m;
+        // std::set<String> groups;
         while (ifg >> id >> grp) {
             popg_m.insert({id, grp});
         }
@@ -283,6 +280,16 @@ void runBaseType(int argc, char **argv)
                 popg_idx.insert({grp, v});
             }
         }
+        if (!popg_idx.empty()) {
+            for (GroupIdx::iterator it = popg_idx.begin(); it != popg_idx.end(); ++it) {
+                headcvg += "\t" + it->first;
+            }
+        }
+    }
+    headcvg += "\n";
+    if (bgzf_write(fpc, headcvg.c_str(), headcvg.length()) != headcvg.length()) {
+        std::cerr << "fail to write - exit" << std::endl;
+        exit(EXIT_FAILURE);
     }
     AlleleInfo ai;
     AlleleInfoVector aiv;
@@ -412,7 +419,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
     double fs, sor, left_p, right_p, twoside_p;
     double min_af = 0.001;
     BaseV bases, quals;
-    std::ostringstream sout;
+    std::ostringstream oss;
     BtRes res;
     // output cvg;
     ref_base = BASE_INT8_TABLE[static_cast<int>(seq[p - rg_s])];
@@ -460,8 +467,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
         sor = 10000.0;
     }
     dep = na + nc + ng + nt;
-    sout << chr << '\t' << p << '\t' << BASE2CHAR[ref_base] << '\t' << dep << '\t' << na << '\t' << nc << '\t' << ng << '\t' << nt << '\t' << fs << '\t' << sor << '\t' << ref_fwd << ',' << ref_rev << ',' << alt_fwd << ',' << alt_rev << "\n";
-    res.cvg = sout.str();
+    oss << chr << '\t' << p << '\t' << BASE2CHAR[ref_base] << '\t' << dep << '\t' << na << '\t' << nc << '\t' << ng << '\t' << nt << '\t' << fs << '\t' << sor << '\t' << ref_fwd << ',' << ref_rev << ',' << alt_fwd << ',' << alt_rev << '\t';
     // basetype caller;
     BaseType bt(bases, quals, ref_base, min_af);
     const bool bt_success = bt.LRT();
@@ -469,10 +475,10 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
     base_comb.insert(base_comb.end(), bt.alt_bases.begin(), bt.alt_bases.end());
     // popgroup depth
     InfoM info;
-    std::ostringstream sgrp;
+    // std::ostringstream ossg;
     if (!popg_idx.empty()) {
         BaseV gr_bases, gr_quals;
-        String gr_af, gr_info;
+        String gr_af;
         for (GroupIdx::const_iterator it = popg_idx.begin(); it != popg_idx.end(); ++it) {
             na = 0; nc = 0; ng = 0; nt = 0;
             for (auto i : it->second) {
@@ -490,8 +496,9 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
                     }
                 }
             }
-            sgrp << na << ':' << nc << ':' << ng << ':' << nt << '\t';
+            oss << na << ':' << nc << ':' << ng << ':' << nt << '\t';
             if (bt_success) {
+                // todo: check out the result
                 BaseType gr_bt(gr_bases, gr_quals, ref_base, min_af);
                 gr_bt.SetBase(base_comb);
                 gr_bt.LRT();
@@ -504,16 +511,15 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
                     }
                 }
                 gr_af.pop_back();
-                gr_info += it->first + "_AF=" + gr_af + ";";
+                // gr_info += it->first + "_AF=" + gr_af + ";";
                 info.insert({it->first + "_AF", gr_af});
                 gr_bases.clear();
                 gr_quals.clear();
             }
         }
-        if (bt_success && gr_info.length()) {
-            gr_info.pop_back();
-            std::cout << p << '\t' << gr_info << std::endl;
-        }
+        res.cvg = oss.str(); res.cvg.pop_back(); res.cvg += "\n";
+    } else {
+        res.cvg = oss.str(); res.cvg += "\n";
     }
     if (bt_success) {
         res.vcf = bt.WriteVcf(bt, chr, p, ref_base, aiv, idx, info, N);
