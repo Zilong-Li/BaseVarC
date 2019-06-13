@@ -305,7 +305,7 @@ void runBaseType(int argc, char **argv)
             headvcf += "##contig=<ID=" + contig + ",length=" + len + ",assembly=" + opt::reference + ">\n";
         }
     }
-    headvcf += "reference=file://" + opt::reference + "\n";
+    headvcf += "#reference=file://" + opt::reference + "\n";
     headvcf += "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" + sams + "\n";
     if (bgzf_write(fpv, headvcf.c_str(), headvcf.length()) != headvcf.length()) {
         std::cerr << "fail to write - exit" << std::endl;
