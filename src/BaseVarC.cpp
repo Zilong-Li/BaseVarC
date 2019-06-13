@@ -198,7 +198,7 @@ void runBaseType(int argc, char **argv)
     }
     // begin to read bams
     String headcvg = String(CVG_HEADER);
-    String headvcf = String(VCF_HEADER) + "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t";
+    String headvcf = String(VCF_HEADER);
     String tmp;
     StringV ftmp_v;
     int bc = opt::batch;
@@ -258,11 +258,6 @@ void runBaseType(int argc, char **argv)
         }
     }
     sams.pop_back();
-    headvcf += sams + "\n";
-    if (bgzf_write(fpv, headvcf.c_str(), headvcf.length()) != headvcf.length()) {
-        std::cerr << "fail to write - exit" << std::endl;
-        exit(EXIT_FAILURE);
-    }
     // fetch popgroup information
     GroupIdx popg_idx;
     if (!opt::group.empty()) {
@@ -291,11 +286,28 @@ void runBaseType(int argc, char **argv)
         if (!popg_idx.empty()) {
             for (GroupIdx::iterator it = popg_idx.begin(); it != popg_idx.end(); ++it) {
                 headcvg += "\t" + it->first;
+                headvcf += "##INFO=<ID=" + it->first + "_AF,Number=A,Type=Float,Description=\"Allele frequency in the " + it->first + " populations calculated based on LRT.[0,1]\">\n";
             }
         }
     }
+    // output header
     headcvg += "\n";
     if (bgzf_write(fpc, headcvg.c_str(), headcvg.length()) != headcvg.length()) {
+        std::cerr << "fail to write - exit" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    // get contig from fai file.
+    String fai = opt::reference + ".fai";
+    std::ifstream ifai(fai);
+    if (ifai.is_open()) {
+        String contig, len, t;
+        while (ifai >> contig >> len >> t >> t >> t) {
+            headvcf += "##contig=<ID=" + contig + ",length=" + len + ",assembly=" + opt::reference + ">\n";
+        }
+    }
+    headvcf += "reference=file://" + opt::reference + "\n";
+    headvcf += "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" + sams + "\n";
+    if (bgzf_write(fpv, headvcf.c_str(), headvcf.length()) != headvcf.length()) {
         std::cerr << "fail to write - exit" << std::endl;
         exit(EXIT_FAILURE);
     }
