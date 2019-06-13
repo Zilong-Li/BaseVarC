@@ -509,9 +509,9 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
                     }
                 }
                 gr_af.pop_back();
-                info.insert({it->first + "_AF", gr_af});
                 gr_bases.clear();
                 gr_quals.clear();
+                info.insert({it->first + "_AF", gr_af});
             }
         }
         res.cvg = oss.str(); res.cvg.pop_back(); res.cvg += "\n";

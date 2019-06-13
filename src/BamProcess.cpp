@@ -42,53 +42,82 @@ bool BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
     }
     // check again;
     if (rv.empty()) return false;
-    bool flag = false;
-    size_t i = 0, j = 0;
-    r = rv[i];
-    const std::string SKIP = "DPN";
+/*  sk: the index of the CIGAR operator.
+    sx: the reference coordinate of the start of sk
+    sy: the query coordiante of the start of sk
+ */
+    size_t i = 0, j = 0, k = 0, nc, sk;
+    int sx, sy, indel;
+    bool eof = false, next = false, is_indel = false, is_del = false, is_refskip = false;
     AlleleInfo ale;
+    SeqLib::Cigar c;
+    r = rv[i];
     for (auto const& pos: pv) {
-        /* select the first record covering this position */
+        // select the first record covering this position
         if (pos < r.Position() + 1) { // make 1-based
             continue;
-        }else{
+        } else {
             // r.PositionEnd is 1-based
             while (pos > r.PositionEnd()) {
-                if (i == rv.size() - 1) {flag = true; break;}
-                j = ++i;
-                r = rv[i];
+                if (i == rv.size() - 1) {eof = true; break;}
+                r = rv[++i];
+                j = i;
+                if (pos < r.Position() + 1) { next = true; break;}
             }
-            // find the proper read here
+            if (next || eof) { eof = false; next = false; continue; }
+            // find proper read here
             while (true) {
-                SeqLib::Cigar c = r.GetCigar();
-                int track = r.Position();
-                bool fail = false;
-                for (auto const& cf: c) {
-                    auto t = cf.Type();
-                    if (t == 'H' || t == 'S') continue;
-                    if (t != 'I') track += cf.Length();
-                    // skip read if position locus at a SKIP cigar field;
-                    if (track >= pos) {
-                        if (SKIP.find(t) != std::string::npos) fail = true;
-                        break;
-                    }
+                c = r.GetCigar(); nc = c.size();
+                for (k = 0, sx = r.Position(), sy = 0; k < nc; ++k) {
+                    char op = c[k].Type();
+                    int l = c[k].Length();
+                    if (op == 'H' || op == 'I') continue;
+                    else sx += l;
+                    if (pos <= sx) break;
                 }
-                if (fail && j < rv.size() - 1) {
+                assert(k < nc);
+                sk = k;
+                // collect indel information
+                is_indel = is_del = is_refskip = false; indel = 0;
+                {
+                    char op = c[sk].Type();
+                    if (sx == pos && sk + 1 < nc) { //peek the next operation
+                        // std::cout << c << ' ' << r.Sequence() << ' ' << sk << ' ' << pos << ' ' << sx << ' ' << r.Position() << ' ' << r.PositionEnd() << std::endl;
+                        char op2 = c[sk+1].Type();
+                        int l2 = c[sk+1].Length();
+                        if (op2 == 'D') indel = -(int)l2;
+                        else if (op2 == 'I') indel = l2;
+                        else if (op2 == 'P' && sk + 2 < nc) { // no working for adjacent padding
+                            int l3 = 0;
+                            for (k = sk + 2; k < nc; ++k) {
+                                op2 = c[sk].Type();
+                                l2 = c[sk].Length();
+                                if (op2 == 'I') l3 += l2;
+                                else if (op2 == 'D' || op2 == 'M' || op2 == 'N' || op2 == 'X') break;
+                            }
+                            if (l3 > 0) indel = l3;
+                        }
+                    }
+                    if (indel != 0) is_indel = true;
+                    if (op == 'D') is_del = true;
+                    else if (op == 'N') is_refskip = true;
+                }
+                if (is_indel) {
+                    break;  // @watch: do nothing with indel;
+                }
+                // here we go
+                if (is_del == 0 && is_refskip == 0) {
+                    GetAllele(r, pos, ale);
+                    allele_m.insert({pos, ale});
+                    break;
+                } else if (j < rv.size() - 1) {
                     r = rv[++j];
-                    if (pos < r.Position() + 1) break;
+                    if (pos < r.Position() + 1 || pos > r.PositionEnd()) break;
                 } else {
                     break;
                 }
             }
-            // now we pick this read.
-            if (pos < r.Position() + 1 || pos > r.PositionEnd() || flag) {
-                ;    //continue is a bug; should do nothing
-            } else {
-                GetAllele(r, pos, ale);
-                allele_m.insert({pos, ale});
-            }
-            r = rv[i];     // all back to index i
-            j = i;
+            r = rv[i]; j = i;     // all back to index i
         }
     }
     return true;

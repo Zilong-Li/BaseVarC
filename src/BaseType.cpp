@@ -144,7 +144,6 @@ bool BaseType::LRT()
 
 String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, InfoM& info, int32_t N)
 {
-    // @TODO: switch to much faster format lib;
     char tab = '\t';
     std::unordered_map<uint8_t, String> alt_gt;
     String gt;
@@ -200,9 +199,6 @@ String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, in
     } else {
         qt = "LowQual";
     }
-    // std::ostringstream oss;
-    // oss << chr << tab << pos << tab << '.' << tab << BASE2CHAR[ref_base] << tab << alt << tab << bt.var_qual << tab << qt << tab;
-    // String out = oss.str();
     String out = chr + tab + BaseVar::tostring(pos) + "\t.\t" + BASE2CHAR[ref_base] + tab + alt + tab + BaseVar::tostring(bt.var_qual) + tab + qt + tab;
     for (InfoM::iterator it = info.begin(); it != info.end(); ++it) {
         out += it->first + "=" + it->second + ";";
