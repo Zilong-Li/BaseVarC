@@ -178,13 +178,21 @@ void runBaseType(int argc, char **argv)
     	         std::istream_iterator<BaseVar::Line>{});
     const int32_t N = bams.size();
     // fetch ref bases;
+    if (opt::region.empty()) {
+        std::cerr << "Error: region must be specified" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    if (opt::reference.empty()) {
+        std::cerr << "Error: reference must be specified" << std::endl;
+        exit(EXIT_FAILURE);
+    }
     RefReader fa;
     String seq = fa.GetTargetBase(opt::region, opt::reference);
     String chr;
     int32_t rg_s, rg_e;
     std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(opt::region);
     IntV pv;
-    for (size_t i = 0; i < seq.length(); i++) {
+    for (size_t i = 0; i < seq.length(); ++i) {
         if (seq[i] == 'N') continue;
         pv.push_back(i + rg_s);       // 1-based
     }
@@ -202,6 +210,7 @@ void runBaseType(int argc, char **argv)
             std::cerr << "threads must be larger than 1" << std::endl;
             exit(EXIT_FAILURE);
         }
+        // @todo: optimize threadpool. current cpu usage less than 50%
         ThreadPool pool(thread);
         std::vector<std::future<void>> res;
         String region = opt::region;
@@ -256,7 +265,7 @@ void runBaseType(int argc, char **argv)
     }
     // fetch popgroup information
     GroupIdx popg_idx;
-    if (opt::group.length()) {
+    if (!opt::group.empty()) {
         std::ifstream ifg(opt::group);
         String id, grp;
         std::unordered_map<String, String> popg_m;

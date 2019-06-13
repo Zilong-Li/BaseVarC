@@ -43,7 +43,7 @@ inline std::tuple<std::string, int32_t, int32_t> splitrg(std::string rg) {
         rg.erase(0, p + 1);
     }
     if ((p = rg.find("-")) != std::string::npos) {
-        s = std::stoi(rg.substr(0, p)) - 1;      // make 0-based
+        s = std::stoi(rg.substr(0, p));      // 1-based
         rg.erase(0, p + 1);
         e = std::stoi(rg) - 1;
     }

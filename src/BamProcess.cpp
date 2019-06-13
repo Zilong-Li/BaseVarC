@@ -60,8 +60,7 @@ bool BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
             // r.PositionEnd is 1-based
             while (pos > r.PositionEnd()) {
                 if (i == rv.size() - 1) {eof = true; break;}
-                r = rv[++i];
-                j = i;
+                r = rv[++i]; j = i;
                 if (pos < r.Position() + 1) { next = true; break;}
             }
             if (next || eof) { eof = false; next = false; continue; }
@@ -103,7 +102,7 @@ bool BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
                     else if (op == 'N') is_refskip = true;
                 }
                 if (is_indel) {
-                    break;  // @watch: do nothing with indel;
+                    break;  // @watch: nothing to do with indel;
                 }
                 // here we go
                 if (is_del == 0 && is_refskip == 0) {
