@@ -303,7 +303,8 @@ void runBaseType(int argc, char **argv)
     if (ifai.is_open()) {
         String contig, len, t;
         while (ifai >> contig >> len >> t >> t >> t) {
-            headvcf += "##contig=<ID=" + contig + ",length=" + len + ",assembly=" + opt::reference + ">\n";
+            // headvcf += "##contig=<ID=" + contig + ",length=" + len + ",assembly=" + opt::reference + ">\n";
+            headvcf += "##contig=<ID=" + contig + ",length=" + len + ">\n";
         }
     }
     headvcf += "#reference=file://" + opt::reference + "\n";
