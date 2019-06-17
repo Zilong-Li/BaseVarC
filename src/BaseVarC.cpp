@@ -35,7 +35,7 @@ static const char* BASETYPE_MESSAGE =
 "  --mapq,       -q <INT>  Mapping quality >= INT [10]\n"
 "  --thread,     -t <INT>  Number of thread\n"
 "  --batch,      -b <INT>  Number of samples each batch\n"
-"  --maf,                  Minimum allele count frequency [0.001]\n"
+"  --maf,                  Minimum allele count frequency [min(0.001, 100/N, maf)]\n"
 "  --load,                 Load data only\n"
 "  --rerun,                Read previous loaded data and rerun\n"
 "  --keep_tmp              Don't remove tmp files when finished basetype\n"
