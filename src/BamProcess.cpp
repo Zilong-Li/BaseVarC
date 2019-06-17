@@ -27,12 +27,12 @@ bool BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
     	exit(EXIT_FAILURE);
     }
     SeqLib::GenomicRegion gr(rg, Header());
+    gr.Pad(1000);
     if (!SetRegion(gr)) {
         // SetRegion always be true, which is weird
     	std::cerr << sm << ": region " << rg << " is empty." << std::endl;
         return false;
     }
-    gr.Pad(1000);
     SeqLib::BamRecord r;
     // filter reads here
     SeqLib::BamRecordVector rv;
@@ -133,8 +133,8 @@ void BamProcess::FindSnpAtPos(const std::string& rg, const PosInfoVector& pv)
     	exit(EXIT_FAILURE);
     }
     SeqLib::GenomicRegion gr(rg, Header());
-    SetRegion(gr);
     gr.Pad(1000);
+    SetRegion(gr);
     SeqLib::BamRecord r;
     // filter reads here
     SeqLib::BamRecordVector rv;

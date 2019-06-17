@@ -213,7 +213,6 @@ void runBaseType(int argc, char **argv)
         // @todo: optimize threadpool. current cpu usage less than 50%
         ThreadPool pool(thread);
         std::vector<std::future<void>> res;
-        String region = opt::region;
         StringV bams_t;
         std::cerr << "begin to read bams and save as tmp file" << std::endl;
         for (int i = 0; i < bt; ++i) {
@@ -226,7 +225,7 @@ void runBaseType(int argc, char **argv)
                 StringV t(bams.begin() + i * bc, bams.begin() + (i + 1)*bc);
                 bams_t = t;
             }
-            res.emplace_back(pool.enqueue(bt_read, bams_t, std::cref(region), std::cref(pv), tmp));
+            res.emplace_back(pool.enqueue(bt_read, bams_t, std::cref(opt::region), std::cref(pv), tmp));
         }
         for (auto && r: res) {
             r.get();
@@ -239,7 +238,7 @@ void runBaseType(int argc, char **argv)
             ftmp_v.push_back(tmp);
         }
     }
-    // begin to call basetype and output
+    // hold all tmp file pointers
     String vcfout = opt::output + ".vcf.gz";
     String cvgout = opt::output + ".cvg.gz";
     BGZF* fpv = bgzf_open(vcfout.c_str(), "w");
@@ -311,6 +310,7 @@ void runBaseType(int argc, char **argv)
         std::cerr << "fail to write - exit" << std::endl;
         exit(EXIT_FAILURE);
     }
+    // begin to call basetype and output
     AlleleInfo ai;
     AlleleInfoVector aiv;
     DepM idx;
@@ -320,6 +320,7 @@ void runBaseType(int argc, char **argv)
     char *buf=NULL, *str=NULL, *str2=NULL, *pti=NULL, *pto=NULL;
     for (auto & p : pv) {
         j = 0; k = 0;
+        // merge all data together from tmp files
         for (auto & fp: fpiv) {
             if (bgzf_getline(fp, '\n', &ks) >= 0) {
                 buf = ks.s;
