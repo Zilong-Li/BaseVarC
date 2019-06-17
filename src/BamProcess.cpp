@@ -47,7 +47,7 @@ bool BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
     sy: the query coordiante of the start of sk
  */
     size_t i = 0, j = 0, k = 0, nc, sk;
-    int sx, sy, indel;
+    int sx, indel;
     bool eof = false, next = false, is_indel = false, is_del = false, is_refskip = false;
     AlleleInfo ale;
     SeqLib::Cigar c;
@@ -67,7 +67,7 @@ bool BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
             // find proper read here
             while (true) {
                 c = r.GetCigar(); nc = c.size();
-                for (k = 0, sx = r.Position(), sy = 0; k < nc; ++k) {
+                for (k = 0, sx = r.Position(); k < nc; ++k) {
                     char op = c[k].Type();
                     int l = c[k].Length();
                     if (op == 'H' || op == 'I') continue;
