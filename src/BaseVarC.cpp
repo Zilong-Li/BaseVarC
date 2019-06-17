@@ -20,27 +20,26 @@ static const char* BASEVARC_USAGE_MESSAGE =
 "           basetype       Variants Caller\n"
 "           popmatrix      Create population matrix at specific positions.\n" 
 "           concat         Concat popmatrix.\n" 
-"           merge          Merge vcf/cvg files.\n" 
-"\nReport bugs to lizilong@bgi.com \n\n";
+"           merge          Merge vcf/cvg files.\n";
 
 static const char* BASETYPE_MESSAGE = 
 "Program: BaseVarC basetype\n"
 "Contact: Zilong Li [lizilong@bgi.com]\n"
 "Usage  : BaseVarC basetype [options]\n\n"
 "Commands:\n"
-"  --input,      -i        BAM/CRAM files list, one file per row.\n"
-"  --output,     -o        Output filename prefix\n"
+"  --input,      -i        BAM/CRAM file list, one file per row\n"
+"  --output,     -o        Output file prefix\n"
 "  --reference,  -r        Reference file\n"
 "  --region,     -s        Samtools-like region\n"
-"  --group,      -g        Population group information\n"
-"  --mapq,       -q <INT>  Mapping quality >= INT. [10]\n"
+"  --group,      -g        Population group information <SampleID Group>\n"
+"  --mapq,       -q <INT>  Mapping quality >= INT [10]\n"
 "  --thread,     -t <INT>  Number of thread\n"
 "  --batch,      -b <INT>  Number of samples each batch\n"
-"  --maf,                  Minimum allele count frequency.[0.001]\n"
+"  --maf,                  Minimum allele count frequency [0.001]\n"
 "  --load,                 Load data only\n"
 "  --rerun,                Read previous loaded data and rerun\n"
-"  --verbose,    -v        Set verbose output\n"
-"\nReport bugs to lizilong@bgi.com \n\n";
+"  --keep_tmp              Don't remove tmp files when finished basetype\n"
+"  --verbose,    -v        Set verbose output\n";
 
 static const char* POPMATRIX_MESSAGE = 
 "Program: BaseVarC popmatrix\n"
@@ -51,8 +50,7 @@ static const char* POPMATRIX_MESSAGE =
 "  --posfile,    -p        Position file <CHRID POS REF ALT>\n"
 "  --output,     -o        Output filename prefix(.mat.gz will be added auto)\n"
 "  --mapq,       -q <INT>  Mapping quality >= INT. [10]\n"
-"  --verbose,    -v        Set verbose output\n"
-"\nReport bugs to lizilong@bgi.com \n\n";
+"  --verbose,    -v        Set verbose output\n";
 
 static const char* CONCAT_MESSAGE =
 "Program: BaseVarC popmatrix\n"
@@ -60,8 +58,7 @@ static const char* CONCAT_MESSAGE =
 "Usage  : BaseVarC concat [options]\n\n"
 "Commands:\n"
 "  --input,      -i       List of matrix files for concat, one file per row.\n"
-"  --output,     -o       Output filename prefix(.gz will be added auto)\n"
-"\nReport bugs to lizilong@bgi.com \n\n";
+"  --output,     -o       Output filename prefix(.gz will be added auto)\n";
 
 static const char* CVG_HEADER =
 "##fileformat=CVGv1.0\n"
@@ -113,6 +110,7 @@ namespace opt {
     static bool verbose = false;
     static bool rerun   = false;
     static bool load    = false;
+    static bool keep_tmp= false;
     static uint8_t mapq = 10;
     static int thread;
     static int batch;
@@ -130,6 +128,7 @@ static const char* shortopts = "hvi:r:p:s:o:q:t:b:g:";
 static const struct option longopts[] = {
   { "help",                    no_argument, NULL, 'h' },
   { "verbose",                 no_argument, NULL, 'v' },
+  { "keep_tmp",                no_argument, NULL,  6  },
   { "load",                    no_argument, NULL,  7  },
   { "rerun",                   no_argument, NULL,  8  },
   { "maf",                     required_argument, NULL,  9  },
@@ -370,9 +369,11 @@ void runBaseType(int argc, char **argv)
     }
     if (bgzf_close(fpv) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
     if (bgzf_close(fpc) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
-    // remove tmp file
-    for (auto & f: ftmp_v) {
-        std::remove(f.c_str());
+    // whether remove tmp file or not
+    if (!opt::keep_tmp) {
+        for (auto & f: ftmp_v) {
+            std::remove(f.c_str());
+        }
     }
     // done
     clock_t cte = clock();
@@ -703,6 +704,7 @@ void parseOptions(int argc, char **argv, const char* msg)
         case  9 : arg >> opt::maf; break;
         case  8 : opt::rerun   = true; break;
         case  7 : opt::load    = true; break;
+        case  6 : opt::keep_tmp= true; break;
         case 'v': opt::verbose = true; break;
         default: die = true;
         }
