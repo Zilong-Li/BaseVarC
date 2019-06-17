@@ -40,7 +40,7 @@ typedef std::unordered_map<int32_t, AlleleInfo> PosAlleleMap;
 class BamProcess: public SeqLib::BamReader
 {
  public:
-    BamProcess(){}
+    BamProcess(uint8_t mapq_): mapq(mapq_){}
     ~BamProcess(){
         // if we want to read the same bams many times , we need to reset m_bams, which is _BamMap type
         m_bams.clear();
@@ -53,11 +53,12 @@ class BamProcess: public SeqLib::BamReader
     void writeCvg(){}
 
     std::string sm;
-    uint8_t mapq = 10;
     std::vector<char> snps;
     PosAlleleMap allele_m;  // allele_m may be uninitialized.
 
  private:
+    const uint8_t mapq;
+
     char GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const;
 
     void GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, AlleleInfo& ale) const;

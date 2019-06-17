@@ -36,6 +36,7 @@ static const char* BASETYPE_MESSAGE =
 "  --mapq,       -q <INT>  Mapping quality >= INT. [10]\n"
 "  --thread,     -t <INT>  Number of thread\n"
 "  --batch,      -b <INT>  Number of samples each batch\n"
+"  --maf,                  Minimum allele count frequency.[0.001]\n"
 "  --load,                 Load data only\n"
 "  --rerun,                Read previous loaded data and rerun\n"
 "  --verbose,    -v        Set verbose output\n"
@@ -112,9 +113,10 @@ namespace opt {
     static bool verbose = false;
     static bool rerun   = false;
     static bool load    = false;
-    static int mapq;
+    static uint8_t mapq = 10;
     static int thread;
     static int batch;
+    static double maf = 0.001;
     static std::string input;
     static std::string reference;
     static std::string posfile;
@@ -128,8 +130,9 @@ static const char* shortopts = "hvi:r:p:s:o:q:t:b:g:";
 static const struct option longopts[] = {
   { "help",                    no_argument, NULL, 'h' },
   { "verbose",                 no_argument, NULL, 'v' },
-  { "rerun",                   no_argument, NULL,  8  },
   { "load",                    no_argument, NULL,  7  },
+  { "rerun",                   no_argument, NULL,  8  },
+  { "maf",                     required_argument, NULL,  9  },
   { "input",                   required_argument, NULL, 'i' },
   { "reference",               required_argument, NULL, 'r' },
   { "posfile",                 required_argument, NULL, 'p' },
@@ -388,7 +391,7 @@ void bt_read(StringV bams, const String& region, const IntV& pv, String fout)
     allele_mv.reserve(n);
     int32_t count = 0;
     for (auto const& bam: bams) {
-        BamProcess reader;
+        BamProcess reader(opt::mapq);
         if (!(++count % 100)) std::cerr << "reading number " << count << " bam -- " << fout << std::endl;
         if (!reader.Open(bam)) {
             std::cerr << "ERROR: could not open file " << bam << std::endl;
@@ -438,7 +441,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
     int8_t alt_base, ref_base;
     int32_t dep, na, nc, ng, nt, ref_fwd, ref_rev, alt_fwd, alt_rev;
     double fs, sor, left_p, right_p, twoside_p;
-    double min_af = 0.001;
+    double min_af = opt::maf;
     BaseV bases, quals;
     std::ostringstream oss;
     BtRes res;
@@ -578,7 +581,7 @@ void runPopMatrix (int argc, char **argv)
     String rg = pv.front() + pv.back();
     int32_t count = 0;
     for (int32_t i = 0; i < N; i++) {
-        BamProcess reader;
+        BamProcess reader(opt::mapq);
         if (!(++count % 1000)) std::cerr << "Processing the number " << count / 1000 << "k bam" << std::endl;
         if (!reader.Open(bams[i])) {
             std::cerr << "ERROR: could not open file " << bams[i] << std::endl;
@@ -697,6 +700,7 @@ void parseOptions(int argc, char **argv, const char* msg)
         case 's': arg >> opt::region; break;
         case 'g': arg >> opt::group; break;
         case 'o': arg >> opt::output; break;
+        case  9 : arg >> opt::maf; break;
         case  8 : opt::rerun   = true; break;
         case  7 : opt::load    = true; break;
         case 'v': opt::verbose = true; break;

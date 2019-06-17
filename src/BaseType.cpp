@@ -1,6 +1,6 @@
 #include "BaseType.h"
 
-BaseType::BaseType(BaseV base, BaseV qual, int8_t ref, double minaf) : bases(base), quals(qual), ref_base(ref), min_af(minaf), nind(base.size())
+BaseType::BaseType(BaseV bases_, BaseV quals_, int8_t ref, double minaf) : bases(bases_), quals(quals_), ref_base(ref), min_af(minaf), nind(bases.size())
 {
     var_qual = 0;
     depth_total = 0;
@@ -138,8 +138,9 @@ bool BaseType::LRT()
             if (var_qual == 0) var_qual = 0.0;  // output -0.0 to 0.0;
         }
         return true;
+    } else {
+        return false;
     }
-    return false;
 }
 
 String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, InfoM& info, int32_t N)

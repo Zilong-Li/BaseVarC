@@ -35,9 +35,9 @@ class BaseType
     String WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, InfoM& info, int32_t N);
 
     double var_qual;
+    double depth_total;
     BaseV alt_bases;
     DepM depth;
-    double depth_total;
     std::unordered_map<int8_t, double> af_lrt;
 
  private:
