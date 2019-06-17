@@ -442,7 +442,9 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
     int8_t alt_base, ref_base;
     int32_t dep, na, nc, ng, nt, ref_fwd, ref_rev, alt_fwd, alt_rev;
     double fs, sor, left_p, right_p, twoside_p;
-    double min_af = opt::maf;
+    double min_af = 100.0 / N;
+    if (min_af > 0.001) min_af = 0.001;
+    if (opt::maf < min_af ) min_af = opt::maf;
     BaseV bases, quals;
     std::ostringstream oss;
     BtRes res;
