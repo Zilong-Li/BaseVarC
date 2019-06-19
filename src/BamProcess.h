@@ -33,6 +33,8 @@ struct AlleleInfo
     unsigned int qual:  8;
     unsigned int rpr:   8;
     unsigned int strand:1;      // 0 : -, 1 : +
+    unsigned int is_indel:1;      // 0 : -, 1 : +
+    std::string indel;
 };
 typedef std::vector<AlleleInfo> AlleleInfoVector;
 typedef std::unordered_map<int32_t, AlleleInfo> PosAlleleMap;
@@ -46,7 +48,7 @@ class BamProcess: public SeqLib::BamReader
         m_bams.clear();
     }
 
-    bool FindSnpAtPos(const std::string& rg, const std::vector<int32_t>& pv);
+    bool FindSnpAtPos(int32_t rg_s, const std::string& refseq, const std::string& rg, const std::vector<int32_t>& pv);
 
     void FindSnpAtPos(const std::string& rg, const PosInfoVector& pv);
 

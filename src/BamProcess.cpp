@@ -1,6 +1,6 @@
 #include "BamProcess.h"
 
-bool BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>& pv)
+bool BamProcess::FindSnpAtPos(int32_t rg_s, const std::string& refseq, const std::string& rg, const std::vector<int32_t>& pv)
 {
     // check if the BAM is sorted
     std::string hh = Header().AsString(); //std::string(header()->text)
@@ -47,9 +47,10 @@ bool BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
     sy: the query coordiante of the start of sk
  */
     size_t i = 0, j = 0, k = 0, nc, sk;
-    int sx, indel;
+    int sx, sy, indel;
     bool eof = false, next = false, is_indel = false, is_del = false, is_refskip = false;
-    AlleleInfo ale;
+    std::string indel_str;
+    AlleleInfo ale; // = {0, 0, 0, 0, 0, 0, "N"};
     SeqLib::Cigar c;
     r = rv[i];
     for (auto const& pos: pv) {
@@ -67,9 +68,10 @@ bool BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
             // find proper read here
             while (true) {
                 c = r.GetCigar(); nc = c.size();
-                for (k = 0, sx = r.Position(); k < nc; ++k) {
+                for (k = 0, sx = r.Position(), sy = 0; k < nc; ++k) {
                     char op = c[k].Type();
                     int l = c[k].Length();
+                    if (op -= 'M' || op == 'I' || op == 'S' || op == 'X') sy += l;
                     if (op == 'H' || op == 'I') continue;
                     else sx += l;
                     if (pos <= sx) break;
@@ -81,12 +83,12 @@ bool BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
                 {
                     char op = c[sk].Type();
                     if (sx == pos && sk + 1 < nc) { //peek the next operation
-                        // std::cout << c << ' ' << r.Sequence() << ' ' << sk << ' ' << pos << ' ' << sx << ' ' << r.Position() << ' ' << r.PositionEnd() << std::endl;
                         char op2 = c[sk+1].Type();
                         int l2 = c[sk+1].Length();
-                        if (op2 == 'D') indel = -(int)l2;
-                        else if (op2 == 'I') indel = l2;
+                        if (op2 == 'D') indel = -(int)l2, indel_str = "-" + refseq.substr(pos - rg_s, l2);
+                        else if (op2 == 'I') indel = l2, indel_str = "+" + r.Sequence().substr(sy, l2);
                         else if (op2 == 'P' && sk + 2 < nc) { // no working for adjacent padding
+                            indel_str = 'N';   // this indicates the indel may be adjacent with a padding operation
                             int l3 = 0;
                             for (k = sk + 2; k < nc; ++k) {
                                 op2 = c[sk].Type();
@@ -101,10 +103,13 @@ bool BamProcess::FindSnpAtPos(const std::string& rg, const std::vector<int32_t>&
                     if (op == 'D') is_del = true;
                     else if (op == 'N') is_refskip = true;
                 }
-                if (is_indel) {
-                    break;  // @watch: nothing to do with indel;
-                }
                 // here we go
+                if (is_indel) {
+                    ale.is_indel = 1;
+                    ale.indel = indel_str;
+                    allele_m.insert({pos, ale});
+                    break;
+                }
                 if (is_del == 0 && is_refskip == 0) {
                     GetAllele(r, pos, ale);
                     allele_m.insert({pos, ale});
@@ -217,16 +222,11 @@ void BamProcess::GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, Allel
     int offset = GetOffset(r, pos);
     std::string seq = r.Sequence();
     std::string qualities = r.Qualities();
-    // try {ale.base = base_m.at(seq[offset]);}
-    // catch (std::out_of_range e) {
-    //     std::cerr << pos << '\t' << r.Sequence() <<'\t'<< offset <<'\t'<< seq[offset]<< std::endl;
-    //     exit(EXIT_FAILURE);
-    // }
-    // offset = 33 , so need to substract 33;
     ale.base = base_m.at(seq[offset]);
     ale.qual = qualities[offset] - 33;
     ale.mapq = r.MapQuality();
     ale.rpr = offset + 1;
+    ale.is_indel = 0;
     if (r.ReverseFlag() || r.MateReverseFlag()) {
         ale.strand = 0;
     } else {

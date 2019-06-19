@@ -90,6 +90,7 @@ typedef std::vector<String> StringV;
 typedef std::vector<int32_t> IntV;
 typedef std::vector<PosAlleleMap> PosAlleleMapVec;
 typedef std::map<String, IntV> GroupIdx;
+typedef std::unordered_map<String, int> IndelMap;
 
 struct BtRes
 {
@@ -102,7 +103,8 @@ void runPopMatrix(int argc, char **argv);
 void runConcat(int argc, char **argv);
 void parseOptions(int argc, char **argv, const char* msg);
 
-void bt_read(StringV bams, const String& region, const IntV& pv, String fout);
+//void bt_read(StringV bams, const String& region, const IntV& pv, String fout);
+void bt_read(StringV bams, int32_t rg_s, const String& refseq, const String& region, const IntV& pv, String fout);
 BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, const String& chr, int32_t rg_s, const String& seq);
 // String bt_group(const GroupIdx& popg_idx, const AlleleInfoVector& aiv, const DepM& idx, const BaseV& base);
 
@@ -227,7 +229,7 @@ void runBaseType(int argc, char **argv)
                 StringV t(bams.begin() + i * bc, bams.begin() + (i + 1)*bc);
                 bams_t = t;
             }
-            res.emplace_back(pool.enqueue(bt_read, bams_t, std::cref(opt::region), std::cref(pv), tmp));
+            res.emplace_back(pool.enqueue(bt_read, bams_t, rg_s, std::cref(seq), std::cref(opt::region), std::cref(pv), tmp));
         }
         for (auto && r: res) {
             r.get();
@@ -320,6 +322,7 @@ void runBaseType(int argc, char **argv)
     int32_t j, k, i, count=0;
     IntV pv_t;
     std::cerr << "begin to load data and run basetype" << std::endl;
+    const String stag = "+-N.";
     char *buf=NULL, *str=NULL, *str2=NULL, *pti=NULL, *pto=NULL;
     for (auto & p : pv) {
         j = 0; k = 0;
@@ -328,8 +331,9 @@ void runBaseType(int argc, char **argv)
             if (bgzf_getline(fp, '\n', &ks) >= 0) {
                 buf = ks.s;
                 while ((str = strtok_r(buf, " ", &pto)) != NULL) {
-                    if (str[0] != '.') {
+                    if (stag.find(str[0]) == std::string::npos) {
                         buf = str;
+                        ai.is_indel = 0;
                         for (i = 0; i < 5; ++i) {
                             if ((str2 = strtok_r(buf, ",", &pti)) != NULL) {
                                 switch(i){
@@ -347,6 +351,11 @@ void runBaseType(int argc, char **argv)
                             aiv.push_back(ai);
                             idx.insert({j, k++});
                         }
+                    } else if (str[0] != '.') {
+                        ai.is_indel = 1;
+                        ai.indel = (String)str;
+                        aiv.push_back(ai);
+                        idx.insert({j, k++});
                     }
                     buf = NULL;
                     j++;
@@ -383,7 +392,7 @@ void runBaseType(int argc, char **argv)
     std::cout << "elapsed secs : " << elapsed_secs << std::endl;
 }
 
-void bt_read(StringV bams, const String& region, const IntV& pv, String fout)
+void bt_read(StringV bams, int32_t rg_s, const String& refseq, const String& region, const IntV& pv, String fout)
 {
     char space = ' ';
     char comma = ',';
@@ -399,7 +408,7 @@ void bt_read(StringV bams, const String& region, const IntV& pv, String fout)
             std::cerr << "ERROR: could not open file " << bam << std::endl;
             exit(EXIT_FAILURE);
         }
-        if (!reader.FindSnpAtPos(region, pv)) {
+        if (!reader.FindSnpAtPos(rg_s, refseq, region, pv)) {
             std::cerr << "Warning: " << reader.sm << " region " << region << " is empty." << std::endl;
         }
         allele_mv.push_back(reader.allele_m);
@@ -422,7 +431,8 @@ void bt_read(StringV bams, const String& region, const IntV& pv, String fout)
         for (auto const& m : allele_mv) {
             if (m.count(p)) {
                 auto const& a = m.at(p);
-                out << a.base << comma << a.mapq << comma << a.qual << comma << a.rpr << comma << a.strand << space;
+                if (a.is_indel == 1) out << a.indel << space;
+                else out << a.base << comma << a.mapq << comma << a.qual << comma << a.rpr << comma << a.strand << space;
             } else {
                 out << ". ";
             }
@@ -449,18 +459,35 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
     BaseV bases, quals;
     std::ostringstream oss;
     BtRes res;
+    IndelMap indel_m;
     // output cvg;
     ref_base = BASE_INT8_TABLE[static_cast<int>(seq[p - rg_s])];
     na = 0; nc = 0; ng = 0; nt = 0;
     for (auto const& a: aiv) {
-        switch (a.base) {
-        case 0 : na += 1; break;
-        case 1 : nc += 1; break;
-        case 2 : ng += 1; break;
-        case 3 : nt += 1; break;
+        if (a.is_indel == 0) {
+            switch (a.base) {
+            case 0 : na += 1; break;
+            case 1 : nc += 1; break;
+            case 2 : ng += 1; break;
+            case 3 : nt += 1; break;
+            }
+            bases.push_back(a.base);
+            quals.push_back(a.qual);
+        } else if (a.is_indel == 1) {
+            if (indel_m.count(a.indel)) {
+                indel_m[a.indel] += 1;
+            } else {
+                indel_m.insert({a.indel, 1});
+            }
         }
-        bases.push_back(a.base);
-        quals.push_back(a.qual);
+    }
+    String indels = ".";
+    if (!indel_m.empty()) {
+        indels = "";
+        for (IndelMap::iterator it = indel_m.begin(); it != indel_m.end(); ++it) {
+            indels += it->first + "|" + BaseVar::tostring(it->second) + ",";
+        }
+        indels.pop_back();
     }
     IntV tmp = {na, nc, ng, nt};
     std::vector<size_t> didx = BaseVar::sortidx(tmp);
@@ -495,7 +522,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
         sor = 10000.0;
     }
     dep = na + nc + ng + nt;
-    oss << chr << '\t' << p << '\t' << BASE2CHAR[ref_base] << '\t' << dep << '\t' << na << '\t' << nc << '\t' << ng << '\t' << nt << '\t' << fs << '\t' << sor << '\t' << ref_fwd << ',' << ref_rev << ',' << alt_fwd << ',' << alt_rev << '\t';
+    oss << chr << '\t' << p << '\t' << BASE2CHAR[ref_base] << '\t' << dep << '\t' << na << '\t' << nc << '\t' << ng << '\t' << nt << '\t' << indels << '\t' << fs << '\t' << sor << '\t' << ref_fwd << ',' << ref_rev << ',' << alt_fwd << ',' << alt_rev << '\t';
     // basetype caller;
     BaseType bt(bases, quals, ref_base, min_af);
     const bool bt_success = bt.LRT();
