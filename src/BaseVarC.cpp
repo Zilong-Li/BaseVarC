@@ -62,8 +62,8 @@ static const char* CONCAT_MESSAGE =
 
 static const char* CVG_HEADER =
 "##fileformat=CVGv1.0\n"
-"##Group information is the depth of A:C:G:T\n"
-"#CHROM\tPOS\tREF\tDepth\tA\tC\tG\tT\tFS\tSOR\tStrand_Coverage(REF_FWD,REF_REV,ALT_FWD,ALT_REV)";
+"##Group information is the depth of A:C:G:T:Indel\n"
+"#CHROM\tPOS\tREF\tDepth\tA\tC\tG\tT\tIndels\tFS\tSOR\tStrand_Coverage(REF_FWD,REF_REV,ALT_FWD,ALT_REV)";
 
 static const char* VCF_HEADER =
 "##fileformat=VCFv4.2\n"
@@ -320,7 +320,6 @@ void runBaseType(int argc, char **argv)
     AlleleInfoVector aiv;
     DepM idx;
     int32_t j, k, i, count=0;
-    IntV pv_t;
     std::cerr << "begin to load data and run basetype" << std::endl;
     const String stag = "+-N.";
     char *buf=NULL, *str=NULL, *str2=NULL, *pti=NULL, *pto=NULL;
