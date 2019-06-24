@@ -85,7 +85,7 @@ bool BamProcess::FindSnpAtPos(int32_t rg_s, const std::string& refseq, const std
                     if (sx == pos && sk + 1 < nc) { //peek the next operation
                         char op2 = c[sk+1].Type();
                         int l2 = c[sk+1].Length();
-                        if (op2 == 'D') indel = -(int)l2, indel_str = "-" + refseq.substr(pos - rg_s, l2);
+                        if (op2 == 'D') indel = -(int)l2, indel_str = "-" + refseq.substr(pos - rg_s + 1, l2);  // start from the next operation position
                         else if (op2 == 'I') indel = l2, indel_str = "+" + r.Sequence().substr(sy, l2);
                         else if (op2 == 'P' && sk + 2 < nc) { // no working for adjacent padding
                             indel_str = 'N';   // this indicates the indel may be adjacent with a padding operation
