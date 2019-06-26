@@ -361,7 +361,7 @@ void runBaseType(int argc, char **argv)
                 }
             }
         }
-        if (aiv.size() > 0) {
+        if (!aiv.empty()) {
             auto btr = bt_f(p, popg_idx, aiv, idx, N, chr, rg_s, seq);
             if (btr.vcf != "NA" && bgzf_write(fpv, btr.vcf.c_str(), btr.vcf.length()) != btr.vcf.length()) {
                 std::cerr << "fail to write - exit" << std::endl;
@@ -543,14 +543,14 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
                     case 2 : ng += 1; break;
                     case 3 : nt += 1; break;
                     }
-                    if (bt_success) {
+                    if (bt_success && a.is_indel == 0) {
                         gr_bases.push_back(a.base);
                         gr_quals.push_back(a.qual);
                     }
                 }
             }
             oss << na << ':' << nc << ':' << ng << ':' << nt << '\t';
-            if (bt_success) {
+            if (!gr_bases.empty()) {
                 // todo: check out the result
                 BaseType gr_bt(gr_bases, gr_quals, ref_base, min_af);
                 gr_bt.SetBase(base_comb);
@@ -569,10 +569,8 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
                 info.insert({it->first + "_AF", gr_af});
             }
         }
-        res.cvg = oss.str(); res.cvg.pop_back(); res.cvg += "\n";
-    } else {
-        res.cvg = oss.str(); res.cvg += "\n";
     }
+    res.cvg = oss.str(); res.cvg.pop_back(); res.cvg += "\n";
     if (bt_success) {
         res.vcf = bt.WriteVcf(bt, chr, p, ref_base, aiv, idx, info, N);
     } else {

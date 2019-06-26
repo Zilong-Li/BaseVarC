@@ -50,7 +50,7 @@ bool BamProcess::FindSnpAtPos(int32_t rg_s, const std::string& refseq, const std
     int sx, sy, indel;
     bool eof = false, next = false, is_indel = false, is_del = false, is_refskip = false;
     std::string indel_str;
-    AlleleInfo ale; // = {0, 0, 0, 0, 0, 0, "N"};
+    AlleleInfo ale; // = {4, 0, 0, 0, 0, 0, "N"};
     SeqLib::Cigar c;
     r = rv[i];
     for (auto const& pos: pv) {
@@ -105,8 +105,9 @@ bool BamProcess::FindSnpAtPos(int32_t rg_s, const std::string& refseq, const std
                 }
                 // here we go
                 if (is_indel) {
-                    ale.is_indel = 1;
-                    ale.indel = indel_str;
+                    if (r.ReverseFlag() || r.MateReverseFlag()) ale.strand = 0;
+                    else ale.strand = 1;
+                    ale.base = 5; ale.qual = r.MapQuality(); ale.rpr = 0; ale.is_indel = 1; ale.indel = indel_str;
                     allele_m.insert({pos, ale});
                     break;
                 }
@@ -227,11 +228,8 @@ void BamProcess::GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, Allel
     ale.mapq = r.MapQuality();
     ale.rpr = offset + 1;
     ale.is_indel = 0;
-    if (r.ReverseFlag() || r.MateReverseFlag()) {
-        ale.strand = 0;
-    } else {
-        ale.strand = 1;
-    }
+    if (r.ReverseFlag() || r.MateReverseFlag()) ale.strand = 0;
+    else ale.strand = 1;
 }
 
 int BamProcess::GetOffset(const SeqLib::BamRecord& r, const uint32_t pos) const

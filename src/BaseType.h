@@ -30,7 +30,7 @@ class BaseType
         delete []init_allele_freq;
     }
 
-    void SetBase (const BaseV& v) { base_comb = v; }
+    void SetBase (const BaseV& v) { this->base_comb = v; }
     bool LRT();
     String WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, InfoM& info, int32_t N);
 
