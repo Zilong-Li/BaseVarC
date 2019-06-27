@@ -235,6 +235,39 @@ void runBaseType(int argc, char **argv)
     for (std::thread & t : workers) {
         if (t.joinable()) t.join();
     }
+    workers.clear();
+    // merge all subfile
+    String vcfout = opt::output + ".vcf.gz", subvcf;
+    String cvgout = opt::output + ".cvg.gz", subcvg;
+    BGZF* fov = bgzf_open(vcfout.c_str(), "w");
+    BGZF* foc = bgzf_open(cvgout.c_str(), "w");
+    kstring_t ks = {0, 0, NULL};
+    for (int i = 0; i < thread; ++i) {
+        subvcf = opt::output + BaseVar::tostring(i) + ".vcf.gz";
+        subcvg = opt::output + BaseVar::tostring(i) + ".cvg.gz";
+        BGZF* fiv = bgzf_open(subvcf.c_str(), "r");
+        BGZF* fic = bgzf_open(subcvg.c_str(), "r");
+        while (bgzf_getline(fiv, '\n', &ks) >= 0) {
+            tmp = (String)ks.s + '\n';
+            if (bgzf_write(fov, tmp.c_str(), tmp.length()) != tmp.length()) {
+                std::cerr << "fail to write - exit" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
+        while (bgzf_getline(fic, '\n', &ks) >= 0) {
+            tmp = (String)ks.s + '\n';
+            if (bgzf_write(foc, tmp.c_str(), tmp.length()) != tmp.length()) {
+            // if (bgzf_write(foc, ks.s, ks.l) != ks.l) {
+                std::cerr << "fail to write - exit" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
+        std::remove(subvcf.c_str());
+        std::remove(subcvg.c_str());
+    }
+    if (bgzf_close(fov) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
+    if (bgzf_close(foc) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
+
     // done
     clock_t cte = clock();
     double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
@@ -297,12 +330,6 @@ void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const Str
             }
         }
     }
-    // output header
-    headcvg += "\n";
-    if (bgzf_write(fpc, headcvg.c_str(), headcvg.length()) != headcvg.length()) {
-        std::cerr << "fail to write - exit" << std::endl;
-        exit(EXIT_FAILURE);
-    }
     // get contig from fai file.
     String fai = opt::reference + ".fai";
     std::ifstream ifai(fai);
@@ -314,9 +341,17 @@ void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const Str
     }
     headvcf += "#reference=file://" + opt::reference + "\n";
     headvcf += "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" + sams + "\n";
-    if (bgzf_write(fpv, headvcf.c_str(), headvcf.length()) != headvcf.length()) {
-        std::cerr << "fail to write - exit" << std::endl;
-        exit(EXIT_FAILURE);
+    headcvg += "\n";
+    // output header
+    if (ithread == 0) {
+        if (bgzf_write(fpc, headcvg.c_str(), headcvg.length()) != headcvg.length()) {
+            std::cerr << "fail to write - exit" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        if (bgzf_write(fpv, headvcf.c_str(), headvcf.length()) != headvcf.length()) {
+            std::cerr << "fail to write - exit" << std::endl;
+            exit(EXIT_FAILURE);
+        }
     }
     // begin to call basetype and output
     AlleleInfo ai;
