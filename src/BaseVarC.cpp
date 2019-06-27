@@ -174,8 +174,9 @@ int main(int argc, char** argv)
 void runBaseType(int argc, char **argv)
 {
     parseOptions(argc, argv, BASETYPE_MESSAGE);
-    std::cerr << "basetype start" << std::endl;
+    time_t tim = time(0);
     clock_t ctb = clock();
+    std::cout << "basetype start -- " << ctime(&tim);
     std::ifstream ibam(opt::input);
     StringV bams(std::istream_iterator<BaseVar::Line>{ibam},
     	         std::istream_iterator<BaseVar::Line>{});
@@ -224,12 +225,10 @@ void runBaseType(int argc, char **argv)
         res.clear();
         if (opt::load) exit(EXIT_SUCCESS);
     }
+    std::cout << "basetype loading done -- " << ctime(&tim);
     // begin to call basetype
     std::vector<std::thread> workers;
     for (int i = 0; i < thread; ++i) {
-        for (auto f : ftmp_vv[i]) {
-            std::cout << "thread " << i << " : " << f << std::endl;
-        }
         workers.push_back(std::thread(bt_s, std::cref(ftmp_vv[i]), std::cref(pv), std::cref(refseq), std::cref(chr), rg_s, N, thread, i));
     }
     for (std::thread & t : workers) {
@@ -269,10 +268,11 @@ void runBaseType(int argc, char **argv)
     if (bgzf_close(foc) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
 
     // done
+    std::cout << "basetype computing done -- " << ctime(&tim);
     clock_t cte = clock();
     double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
-    std::cerr << "basetype done" << std::endl;
-    std::cout << "elapsed secs : " << elapsed_secs << std::endl;
+    std::cout << "basetype elapsed secs : " << elapsed_secs << std::endl;
+    std::cout << "basetype done" << std::endl;
 }
 
 void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const String& chr, int32_t rg_s, int32_t N, int thread, int ithread)
