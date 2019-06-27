@@ -103,10 +103,9 @@ void runPopMatrix(int argc, char **argv);
 void runConcat(int argc, char **argv);
 void parseOptions(int argc, char **argv, const char* msg);
 
-//void bt_read(StringV bams, const String& region, const IntV& pv, String fout);
-void bt_read(StringV bams, int32_t rg_s, const String& refseq, const String& region, const IntV& pv, String fout);
-BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, const String& chr, int32_t rg_s, const String& seq);
-// String bt_group(const GroupIdx& popg_idx, const AlleleInfoVector& aiv, const DepM& idx, const BaseV& base);
+void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const String& region, const String& fout, int nb, int bc, int ib, int32_t rg_s, int thread);
+void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const String& chr, int32_t rg_s, int32_t N, int thread, int ithread);
+BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, const String& chr, int32_t rg_s, const String& refseq);
 
 namespace opt {
     static bool verbose = false;
@@ -114,8 +113,8 @@ namespace opt {
     static bool load    = false;
     static bool keep_tmp= false;
     static uint8_t mapq = 10;
-    static int thread;
-    static int batch;
+    static int thread = 1;
+    static int batch  = 1;
     static double maf = 0.001;
     static std::string input;
     static std::string reference;
@@ -191,60 +190,65 @@ void runBaseType(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
     RefReader fa;
-    String seq = fa.GetTargetBase(opt::region, opt::reference);
+    String refseq = fa.GetTargetBase(opt::region, opt::reference);
     String chr;
     int32_t rg_s, rg_e;
     std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(opt::region);
     IntV pv;
-    for (size_t i = 0; i < seq.length(); ++i) {
-        if (seq[i] == 'N') continue;
+    for (size_t i = 0; i < refseq.length(); ++i) {
+        if (refseq[i] == 'N') continue;
         pv.push_back(i + rg_s);       // 1-based
     }
     // begin to read bams
-    String headcvg = String(CVG_HEADER);
-    String headvcf = String(VCF_HEADER);
     String tmp;
-    StringV ftmp_v;
+    int thread = opt::thread;
+    std::vector<StringV> ftmp_vv(thread);
     int bc = opt::batch;
-    int bt = 1 + (N - 1) / bc;    // ceiling
-    if (!opt::rerun) {
-        int thread;
-        if (opt::thread > 1) thread = opt::thread;
-        else {
-            std::cerr << "threads must be larger than 1" << std::endl;
-            exit(EXIT_FAILURE);
+    int nb = 1 + (N - 1) / bc;    // ceiling
+    for (int i = 0; i < thread; ++i) {
+        for (int j = 0; j < nb; ++j) {
+            tmp = opt::output + ".tmp.batch." + BaseVar::tostring(j) + ".window." + BaseVar::tostring(i);
+            ftmp_vv[i].push_back(tmp);
         }
-        // @todo: optimize threadpool. current cpu usage less than 50%
+    }
+    if (!opt::rerun) {
         ThreadPool pool(thread);
         std::vector<std::future<void>> res;
-        StringV bams_t;
         std::cerr << "begin to read bams and save as tmp file" << std::endl;
-        for (int i = 0; i < bt; ++i) {
-            tmp = opt::output + ".batch." + BaseVar::tostring(i) + ".tmp";
-            ftmp_v.push_back(tmp);
-            if (i == bt - 1) {
-                StringV t(bams.begin() + i * bc, bams.end());
-                bams_t = t;
-            } else {
-                StringV t(bams.begin() + i * bc, bams.begin() + (i + 1)*bc);
-                bams_t = t;
-            }
-            res.emplace_back(pool.enqueue(bt_read, bams_t, rg_s, std::cref(seq), std::cref(opt::region), std::cref(pv), tmp));
+        for (int i = 0; i < nb; ++i) {
+            res.emplace_back(pool.enqueue(bt_r, std::cref(bams), std::cref(pv), std::cref(refseq), std::cref(opt::region), std::cref(opt::output), nb, bc, i, rg_s, thread));
         }
         for (auto && r: res) {
             r.get();
         }
         res.clear();
         if (opt::load) exit(EXIT_SUCCESS);
-    } else {
-        for (int i = 0; i < bt; ++i) {
-            tmp = opt::output + ".batch." + BaseVar::tostring(i) + ".tmp";
-            ftmp_v.push_back(tmp);
-        }
     }
+    // begin to call basetype
+    std::vector<std::thread> workers;
+    for (int i = 0; i < thread; ++i) {
+        for (auto f : ftmp_vv[i]) {
+            std::cout << "thread " << i << " : " << f << std::endl;
+        }
+        workers.push_back(std::thread(bt_s, std::cref(ftmp_vv[i]), std::cref(pv), std::cref(refseq), std::cref(chr), rg_s, N, thread, i));
+    }
+    for (std::thread & t : workers) {
+        if (t.joinable()) t.join();
+    }
+    // done
+    clock_t cte = clock();
+    double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
+    std::cerr << "basetype done" << std::endl;
+    std::cout << "elapsed secs : " << elapsed_secs << std::endl;
+}
+
+void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const String& chr, int32_t rg_s, int32_t N, int thread, int ithread)
+{
     // hold all tmp file pointers
-    String vcfout = opt::output + ".vcf.gz";
-    String cvgout = opt::output + ".cvg.gz";
+    String headcvg = String(CVG_HEADER);
+    String headvcf = String(VCF_HEADER);
+    String vcfout = opt::output + BaseVar::tostring(ithread) + ".vcf.gz";
+    String cvgout = opt::output + BaseVar::tostring(ithread) + ".cvg.gz";
     BGZF* fpv = bgzf_open(vcfout.c_str(), "w");
     BGZF* fpc = bgzf_open(cvgout.c_str(), "w");
     BGZF* fpi;
@@ -305,7 +309,6 @@ void runBaseType(int argc, char **argv)
     if (ifai.is_open()) {
         String contig, len, t;
         while (ifai >> contig >> len >> t >> t >> t) {
-            // headvcf += "##contig=<ID=" + contig + ",length=" + len + ",assembly=" + opt::reference + ">\n";
             headvcf += "##contig=<ID=" + contig + ",length=" + len + ">\n";
         }
     }
@@ -323,7 +326,12 @@ void runBaseType(int argc, char **argv)
     std::cerr << "begin to load data and run basetype" << std::endl;
     const String stag = "+-N.";
     char *buf=NULL, *str=NULL, *str2=NULL, *pti=NULL, *pto=NULL;
-    for (auto & p : pv) {
+    int32_t window = pv.size() % thread + pv.size() / thread;
+    IntV::const_iterator itp, itp2;
+    if (ithread == thread - 1) itp2 = pv.end();
+    else itp2 = pv.begin() + (ithread + 1) * window;
+    for (itp = pv.begin() + ithread * window; itp != itp2; ++itp) {
+        auto & p = *itp;
         j = 0; k = 0;
         // merge all data together from tmp files
         for (auto & fp: fpiv) {
@@ -339,7 +347,7 @@ void runBaseType(int argc, char **argv)
                                 case 0: ai.base = std::atoi(str2);break;
                                 case 1: ai.mapq = std::atoi(str2);break;
                                 case 2: ai.qual = std::atoi(str2);break;
-                                case 3: ai.rpr = std::atoi(str2);break;
+                                case 3: ai.rpr  = std::atoi(str2);break;
                                 case 4: ai.strand = std::atoi(str2);break;
                                 }
                                 buf = NULL;
@@ -351,8 +359,20 @@ void runBaseType(int argc, char **argv)
                             idx.insert({j, k++});
                         }
                     } else if (str[0] != '.') {
+                        for (i = 0; i < 5; ++i) {
+                            if ((str2 = strtok_r(buf, ",", &pti)) != NULL) {
+                                switch(i){
+                                case 0: ai.base = std::atoi(str2);break;
+                                case 1: ai.mapq = std::atoi(str2);break;
+                                case 2: ai.qual = std::atoi(str2);break;
+                                case 3: ai.rpr  = std::atoi(str2);break;
+                                case 4: ai.strand = std::atoi(str2);break;
+                                }
+                                buf = NULL;
+                            }
+                        }
                         ai.is_indel = 1;
-                        ai.indel = (String)str;
+                        ai.indel = (String)str2;
                         aiv.push_back(ai);
                         idx.insert({j, k++});
                     }
@@ -362,7 +382,7 @@ void runBaseType(int argc, char **argv)
             }
         }
         if (!aiv.empty()) {
-            auto btr = bt_f(p, popg_idx, aiv, idx, N, chr, rg_s, seq);
+            auto btr = bt_f(p, popg_idx, aiv, idx, N, chr, rg_s, refseq);
             if (btr.vcf != "NA" && bgzf_write(fpv, btr.vcf.c_str(), btr.vcf.length()) != btr.vcf.length()) {
                 std::cerr << "fail to write - exit" << std::endl;
                 exit(EXIT_FAILURE);
@@ -384,25 +404,26 @@ void runBaseType(int argc, char **argv)
             std::remove(f.c_str());
         }
     }
-    // done
-    clock_t cte = clock();
-    double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
-    std::cerr << "basetype done" << std::endl;
-    std::cout << "elapsed secs : " << elapsed_secs << std::endl;
 }
 
-void bt_read(StringV bams, int32_t rg_s, const String& refseq, const String& region, const IntV& pv, String fout)
+void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const String& region, const String& fout, int nb, int bc, int ib, int32_t rg_s, int thread)
 {
     char space = ' ';
     char comma = ',';
-    size_t n = bams.size();
     PosAlleleMapVec allele_mv;
-    String names;
-    allele_mv.reserve(n);
-    int32_t count = 0;
-    for (auto const& bam: bams) {
+    String names, fw;
+    StringV::const_iterator itb = bams.begin() + ib * bc, itb2;
+    if (ib == nb - 1) {
+        itb2 = bams.end();
+    } else {
+        itb2 = bams.begin() + (ib + 1) * bc;
+    }
+    int32_t size = itb2 - itb, count = 0;
+    allele_mv.reserve(size);
+    for (; itb != itb2; ++itb) {
+        auto bam = *itb;
         BamProcess reader(opt::mapq);
-        if (!(++count % 100)) std::cerr << "reading number " << count << " bam -- " << fout << std::endl;
+        if (!(++count % 100)) std::cerr << "reading number " << count << " bam -- " << fout << ".tmp.batch." << ib << std::endl;
         if (!reader.Open(bam)) {
             std::cerr << "ERROR: could not open file " << bam << std::endl;
             exit(EXIT_FAILURE);
@@ -416,38 +437,44 @@ void bt_read(StringV bams, int32_t rg_s, const String& refseq, const String& reg
             std::cerr << "Warning: could not close file " << bam << std::endl;
         }
     }
-    names += "\n";
+    names += "\n";    // we keep '\t' in front of '\n' so that we can join different batches' names easily.
     std::ostringstream out;
-    out << names;
-    BGZF* fp = bgzf_open(fout.c_str(), "w");
-    if (bgzf_write(fp, out.str().c_str(), out.str().length()) != out.str().length()) {
-        std::cerr << "fail to write - exit" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    out.str("");
-    out.clear();
-    for (auto & p : pv) {
-        for (auto const& m : allele_mv) {
-            if (m.count(p)) {
-                auto const& a = m.at(p);
-                if (a.is_indel == 1) out << a.indel << space;
-                else out << a.base << comma << a.mapq << comma << a.qual << comma << a.rpr << comma << a.strand << space;
-            } else {
-                out << ". ";
-            }
-        }
-        out << "\n";
+    int32_t window = pv.size() % thread + pv.size() / thread;
+    for (int i = 0; i < thread; ++i) {
+        fw = fout + ".tmp.batch." + BaseVar::tostring(ib) + ".window." + BaseVar::tostring(i);
+        out << names;
+        BGZF* fp = bgzf_open(fw.c_str(), "w");
         if (bgzf_write(fp, out.str().c_str(), out.str().length()) != out.str().length()) {
             std::cerr << "fail to write - exit" << std::endl;
             exit(EXIT_FAILURE);
         }
-        out.str("");
-        out.clear();
+        out.str(""); out.clear();
+        IntV::const_iterator itp, itp2;
+        if (i == thread - 1) itp2 = pv.end();
+        else itp2 = pv.begin() + (i + 1) * window;
+        for (itp = pv.begin() + i * window; itp != itp2; ++itp) {
+            auto & p = *itp;
+            for (auto const& m : allele_mv) {
+                if (m.count(p)) {
+                    auto const& a = m.at(p);
+                    if (a.is_indel == 1) out << a.base << comma << a.mapq << comma << a.qual << comma << a.rpr << comma << a.strand << comma << a.indel << space;
+                    else out << a.base << comma << a.mapq << comma << a.qual << comma << a.rpr << comma << a.strand << space;
+                } else {
+                    out << ". ";
+                }
+            }
+            out << "\n";
+            if (bgzf_write(fp, out.str().c_str(), out.str().length()) != out.str().length()) {
+                std::cerr << "fail to write - exit" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            out.str(""); out.clear();
+        }
+        if (bgzf_close(fp) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
     }
-    if (bgzf_close(fp) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
 }
 
-BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, const String& chr, int32_t rg_s, const String& seq)
+BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, const String& chr, int32_t rg_s, const String& refseq)
 {
     int8_t alt_base, ref_base;
     int32_t dep, na, nc, ng, nt, ref_fwd, ref_rev, alt_fwd, alt_rev;
@@ -460,7 +487,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
     BtRes res;
     IndelMap indel_m;
     // output cvg;
-    ref_base = BASE_INT8_TABLE[static_cast<int>(seq[p - rg_s])];
+    ref_base = BASE_INT8_TABLE[static_cast<int>(refseq[p - rg_s])];
     na = 0; nc = 0; ng = 0; nt = 0;
     for (auto const& a: aiv) {
         if (a.is_indel == 0) {
