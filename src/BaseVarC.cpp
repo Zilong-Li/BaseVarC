@@ -394,20 +394,8 @@ void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const Str
                             idx.insert({j, k++});
                         }
                     } else if (str[0] != '.') {
-                        for (i = 0; i < 5; ++i) {
-                            if ((str2 = strtok_r(buf, ",", &pti)) != NULL) {
-                                switch(i){
-                                case 0: ai.base = std::atoi(str2);break;
-                                case 1: ai.mapq = std::atoi(str2);break;
-                                case 2: ai.qual = std::atoi(str2);break;
-                                case 3: ai.rpr  = std::atoi(str2);break;
-                                case 4: ai.strand = std::atoi(str2);break;
-                                }
-                                buf = NULL;
-                            }
-                        }
                         ai.is_indel = 1;
-                        ai.indel = (String)str2;
+                        ai.indel = str;
                         aiv.push_back(ai);
                         idx.insert({j, k++});
                     }
@@ -492,7 +480,7 @@ void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const Strin
             for (auto const& m : allele_mv) {
                 if (m.count(p)) {
                     auto const& a = m.at(p);
-                    if (a.is_indel == 1) out << a.base << comma << a.mapq << comma << a.qual << comma << a.rpr << comma << a.strand << comma << a.indel << space;
+                    if (a.is_indel == 1) out << a.indel << space;
                     else out << a.base << comma << a.mapq << comma << a.qual << comma << a.rpr << comma << a.strand << space;
                 } else {
                     out << ". ";
