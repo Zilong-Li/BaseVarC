@@ -42,10 +42,9 @@ bool BamProcess::FindSnpAtPos(int32_t rg_s, const std::string& refseq, const std
     }
     // check again;
     if (rv.empty()) return false;
-/*  sk: the index of the CIGAR operator.
-    sx: the reference coordinate of the start of sk
-    sy: the query coordiante of the start of sk
- */
+ // sk: the index of the CIGAR operator.
+ // sx: the reference coordinate of the start of sk
+ // sy: the query coordiante of the start of sk
     size_t i = 0, j = 0, k = 0, nc, sk;
     int sx, sy, indel;
     bool eof = false, next = false, is_indel = false, is_del = false, is_refskip = false;

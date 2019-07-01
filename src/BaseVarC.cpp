@@ -225,7 +225,8 @@ void runBaseType(int argc, char **argv)
         res.clear();
         if (opt::load) exit(EXIT_SUCCESS);
     }
-    std::cout << "basetype loading done -- " << ctime(&tim);
+    time_t tim1 = time(0);
+    std::cout << "basetype loading done -- " << ctime(&tim1);
     // begin to call basetype
     std::vector<std::thread> workers;
     for (int i = 0; i < thread; ++i) {
@@ -256,7 +257,6 @@ void runBaseType(int argc, char **argv)
         while (bgzf_getline(fic, '\n', &ks) >= 0) {
             tmp = (String)ks.s + '\n';
             if (bgzf_write(foc, tmp.c_str(), tmp.length()) != tmp.length()) {
-            // if (bgzf_write(foc, ks.s, ks.l) != ks.l) {
                 std::cerr << "fail to write - exit" << std::endl;
                 exit(EXIT_FAILURE);
             }
@@ -268,7 +268,8 @@ void runBaseType(int argc, char **argv)
     if (bgzf_close(foc) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
 
     // done
-    std::cout << "basetype computing done -- " << ctime(&tim);
+    time_t tim2 = time(0);
+    std::cout << "basetype computing done -- " << ctime(&tim2);
     clock_t cte = clock();
     double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
     std::cout << "basetype elapsed secs : " << elapsed_secs << std::endl;
