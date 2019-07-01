@@ -461,39 +461,43 @@ void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const Strin
             std::cerr << "Warning: could not close file " << bam << std::endl;
         }
     }
-    names += "\n";    // we keep '\t' in front of '\n' so that we can join different batches' names easily.
+    names += "\n";    // we keep '\t' ahead of '\n' so that we can join different batches' names easily.
+    int32_t psize = pv.size();
+    int32_t window = psize % thread + psize / thread;
+    std::vector<BGZF*> fpv;
     std::ostringstream out;
-    int32_t window = pv.size() % thread + pv.size() / thread;
+    out << names;
+    BGZF* fp;
     for (int i = 0; i < thread; ++i) {
         fw = fout + ".tmp.batch." + BaseVar::tostring(ib) + ".window." + BaseVar::tostring(i);
-        out << names;
-        BGZF* fp = bgzf_open(fw.c_str(), "w");
+        fp = bgzf_open(fw.c_str(), "w");
         if (bgzf_write(fp, out.str().c_str(), out.str().length()) != out.str().length()) {
             std::cerr << "fail to write - exit" << std::endl;
             exit(EXIT_FAILURE);
         }
-        out.str(""); out.clear();
-        IntV::const_iterator itp, itp2;
-        if (i == thread - 1) itp2 = pv.end();
-        else itp2 = pv.begin() + (i + 1) * window;
-        for (itp = pv.begin() + i * window; itp != itp2; ++itp) {
-            auto & p = *itp;
-            for (auto const& m : allele_mv) {
-                if (m.count(p)) {
-                    auto const& a = m.at(p);
-                    if (a.is_indel == 1) out << a.indel << space;
-                    else out << a.base << comma << a.mapq << comma << a.qual << comma << a.rpr << comma << a.strand << space;
-                } else {
-                    out << ". ";
-                }
+        fpv.push_back(fp);
+    }
+    out.str(""); out.clear();
+    for (int i = 0, j = 0; i < psize; ++i) {
+        auto p = pv[i];
+        for (auto const& m : allele_mv) {
+            if (m.count(p)) {
+                auto const& a = m.at(p);
+                if (a.is_indel == 1) out << a.indel << space;
+                else out << a.base << comma << a.mapq << comma << a.qual << comma << a.rpr << comma << a.strand << space;
+            } else {
+                out << ". ";
             }
-            out << "\n";
-            if (bgzf_write(fp, out.str().c_str(), out.str().length()) != out.str().length()) {
-                std::cerr << "fail to write - exit" << std::endl;
-                exit(EXIT_FAILURE);
-            }
-            out.str(""); out.clear();
         }
+        out << "\n";
+        if (i == (j + 1) * window) ++j;
+        if (bgzf_write(fpv[j], out.str().c_str(), out.str().length()) != out.str().length()) {
+            std::cerr << "fail to write - exit" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        out.str(""); out.clear();
+    }
+    for (auto & fp : fpv) {
         if (bgzf_close(fp) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
     }
 }
