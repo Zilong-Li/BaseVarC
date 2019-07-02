@@ -40,13 +40,13 @@ struct Stat
 };
 
 
-inline double chisf(const double& x, const double& k)
+inline double chisf(double x, double k)
 {
     // sf = 1 - cdf
     return kf_gammaq(k/2.0, x/2.0);
 }
 
-inline double normsf(const double& x)
+inline double normsf(double x)
 {
     // mean = 0, sd = 1
     return 1 - (1 + erf(x/sqrt(2.0)))/2;
