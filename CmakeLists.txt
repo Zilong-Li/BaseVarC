@@ -12,8 +12,8 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
 
 add_custom_target(
   seqlib_build ALL
-  COMMAND ${CMAKE_MAKE_PROGRAM}
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/SeqLib/htslib
+  COMMAND ./configure && make
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/SeqLib
   COMMENT "build seqlib"
   )
 
