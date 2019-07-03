@@ -115,7 +115,7 @@ namespace opt {
     static bool keep_tmp= false;
     static uint8_t mapq = 10;
     static int thread = 1;
-    static int batch  = 1;
+    static int batch  = 10;
     static double maf = 0.001;
     static std::string input;
     static std::string reference;
