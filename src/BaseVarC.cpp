@@ -474,7 +474,6 @@ void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const Strin
         }
         fpv.push_back(fp);
     }
-    // std::ostringstream out;
     String out;
     for (int i = 0, j = 0; i < psize; ++i) {
         auto p = pv[i];
@@ -509,7 +508,6 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
     if (min_af > 0.001) min_af = 0.001;
     if (opt::maf < min_af ) min_af = opt::maf;
     BaseV bases, quals;
-    // std::ostringstream oss;
     BtRes res;
     IndelMap indel_m;
     // output cvg;
