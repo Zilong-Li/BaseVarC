@@ -1,3 +1,6 @@
 [submodule "SeqLib"]
 	path = SeqLib
 	url = https://github.com/walaj/SeqLib.git
+[submodule "fmt"]
+	path = fmt
+	url = https://github.com/fmtlib/fmt.git

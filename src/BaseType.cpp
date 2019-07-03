@@ -1,4 +1,5 @@
 #include "BaseType.h"
+#include <fmt/format.h>
 
 BaseType::BaseType(BaseV bases_, BaseV quals_, int8_t ref, double minaf) : bases(bases_), quals(quals_), ref_base(ref), min_af(minaf), nind(bases.size())
 {
@@ -126,16 +127,16 @@ bool BaseType::LRT()
             var_qual = 5000.0;  // mono-allelelic
         } else {
             if (chi_sqrt_t <= 0) {
-                var_qual = 0.0;
+                var_qual = 0;
                 return true;
             }
             chi_prob = chisf(chi_sqrt_t, 1.0);  // may be nan value;
             if (chi_prob) {
                 var_qual = -10 * log10(chi_prob);
             } else {
-                var_qual = 10000.0;
+                var_qual = 10000;
             }
-            if (var_qual == 0) var_qual = 0.0;  // output -0.0 to 0.0;
+            if (var_qual == 0) var_qual = 0;  // output -0.0 to 0;
         }
         return true;
     } else {
@@ -149,7 +150,7 @@ String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, in
     std::unordered_map<uint8_t, String> alt_gt;
     String gt;
     for (size_t i = 0; i < bt.alt_bases.size(); ++i) {
-        gt = "./" + BaseVar::tostring(i + 1);
+        gt = fmt::format("./{}", i+1);
         alt_gt.insert({bt.alt_bases[i], gt});
     }
     String samgt = "";
@@ -164,43 +165,40 @@ String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, in
             } else {
                 gt = alt_gt[a.base];
             }
-            samgt += gt + ":" + BASE2CHAR[a.base] + ":" + STRAND[a.strand] + ":" + BaseVar::tostring(1 - exp(MLN10TO10 * a.qual)) + "\t";
+            samgt += fmt::format("{}:{}:{}:{:.6f}\t", gt, BASE2CHAR[a.base], STRAND[a.strand], 1 - exp(MLN10TO10 * a.qual));
         }
     }
     Stat st;
     stats(ref_base, bt.alt_bases, aiv, st);
     double ad_sum = 0;
-    String ac, af, caf;
-    std::ostringstream alt_s;
+    String ac, af, caf, alt;
     for (auto b : bt.alt_bases) {
         ad_sum += bt.depth.at(b);
-        alt_s << BASE2CHAR[b] << ",";
-        ac += BaseVar::tostring(bt.depth.at(b)) + ",";
-        af += BaseVar::tostring(bt.af_lrt.at(b)) + ",";
-        caf += BaseVar::tostring(bt.depth.at(b)/bt.depth_total) + ",";
+        alt += fmt::format("{},", BASE2CHAR[b]);
+        ac += fmt::format("{},", bt.depth.at(b));
+        af += fmt::format("{:.6f},", bt.af_lrt.at(b));
+        caf += fmt::format("{:.6f},", bt.depth.at(b) / bt.depth_total);
     }
-    String alt = alt_s.str();
-    // remove the last char;
     alt.pop_back(); samgt.pop_back();
     ac.pop_back(); info.insert({"CM_AC", ac});
     af.pop_back(); info.insert({"CM_AF", af});
     caf.pop_back(); info.insert({"CM_CAF", caf});
-    info.insert({"QD", BaseVar::tostring(bt.var_qual/ad_sum)});
-    info.insert({"CM_DP", BaseVar::tostring(bt.depth_total)});
-    info.insert({"MQRankSum", BaseVar::tostring(st.phred_mapq)});
-    info.insert({"ReadPosRankSum", BaseVar::tostring(st.phred_rpr)});
-    info.insert({"BaseQRankSum", BaseVar::tostring(st.phred_qual)});
-    info.insert({"FS", BaseVar::tostring(st.fs)});
-    info.insert({"SOR", BaseVar::tostring(st.sor)});
-    info.insert({"SB_REF", BaseVar::tostring(st.ref_fwd) + "," + BaseVar::tostring(st.ref_rev)});
-    info.insert({"SB_ALT", BaseVar::tostring(st.alt_fwd) + "," + BaseVar::tostring(st.alt_rev)});
+    info.insert({"QD", fmt::format("{:.3f}", bt.var_qual/ad_sum)});
+    info.insert({"CM_DP", fmt::format("{}", bt.depth_total)});
+    info.insert({"MQRankSum", fmt::format("{:.6f}", st.phred_mapq)});
+    info.insert({"ReadPosRankSum", fmt::format("{:.6f}", st.phred_rpr)});
+    info.insert({"BaseQRankSum", fmt::format("{:.6f}", st.phred_qual)});
+    info.insert({"FS", fmt::format("{:.3f}", st.fs)});
+    info.insert({"SOR", fmt::format("{:.3f}", st.sor)});
+    info.insert({"SB_REF", fmt::format("{},{}", st.ref_fwd, st.ref_rev)});
+    info.insert({"SB_ALT", fmt::format("{},{}", st.alt_fwd, st.alt_rev)});
     String qt;
     if (bt.var_qual > QUAL_THRESHOLD) {
         qt = ".";
     } else {
         qt = "LowQual";
     }
-    String out = chr + tab + BaseVar::tostring(pos) + "\t.\t" + BASE2CHAR[ref_base] + tab + alt + tab + BaseVar::tostring(bt.var_qual) + tab + qt + tab;
+    String out = fmt::format("{}\t{}\t.\t{}\t{}\t{:.2f}\t{}\t", chr, pos, BASE2CHAR[ref_base], alt, bt.var_qual, qt);
     for (InfoM::iterator it = info.begin(); it != info.end(); ++it) {
         out += it->first + "=" + it->second + ";";
     }
@@ -246,21 +244,21 @@ void BaseType::stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVe
     s.phred_qual = -10 * log10(2 * normsf(abs(z_qual)));
     s.phred_mapq = -10 * log10(2 * normsf(abs(z_mapq)));
     s.phred_rpr  = -10 * log10(2 * normsf(abs(z_rpr)));
-    if (std::isinf(s.phred_qual)) s.phred_qual = 10000.0;
-    else if (!(s.phred_qual != 0)) s.phred_qual = 0.0;
-    if (std::isinf(s.phred_mapq)) s.phred_mapq = 10000.0;
-    else if (!(s.phred_mapq != 0)) s.phred_mapq = 0.0;
-    if (std::isinf(s.phred_rpr)) s.phred_rpr = 10000.0;
-    else if (!(s.phred_rpr != 0)) s.phred_rpr = 0.0;
+    if (std::isinf(s.phred_qual)) s.phred_qual = 10000;
+    else if (!(s.phred_qual != 0)) s.phred_qual = 0;
+    if (std::isinf(s.phred_mapq)) s.phred_mapq = 10000;
+    else if (!(s.phred_mapq != 0)) s.phred_mapq = 0;
+    if (std::isinf(s.phred_rpr)) s.phred_rpr = 10000;
+    else if (!(s.phred_rpr != 0)) s.phred_rpr = 0;
     double left_p, right_p, twoside_p;
     kt_fisher_exact(s.ref_fwd, s.ref_rev, s.alt_fwd, s.alt_rev, &left_p, &right_p, &twoside_p);
     s.fs = -10 * log10(twoside_p);
-    if (std::isinf(s.fs)) s.fs = 10000.0;
-    else if (s.fs == 0) s.fs = 0.0;
+    if (std::isinf(s.fs)) s.fs = 10000;
+    else if (s.fs == 0) s.fs = 0;
     if (s.alt_fwd * s.ref_rev > 0) {
         s.sor = static_cast<double>(s.ref_fwd * s.alt_rev) / (s.ref_rev * s.alt_fwd);
     } else {
-        s.sor = 10000.0;
+        s.sor = 10000;
     }
 }
 

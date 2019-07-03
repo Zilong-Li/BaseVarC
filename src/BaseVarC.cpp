@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <ctime>
+#include <fmt/format.h>
 
 #include "htslib/bgzf.h"
 #include "RefReader.h"
@@ -208,7 +209,7 @@ void runBaseType(int argc, char **argv)
     int nb = 1 + (N - 1) / bc;    // ceiling
     for (int i = 0; i < thread; ++i) {
         for (int j = 0; j < nb; ++j) {
-            tmp = opt::output + ".tmp.batch." + BaseVar::tostring(j) + ".window." + BaseVar::tostring(i);
+            tmp = fmt::format("{}.tmp.batch.{}.window.{}", opt::output, j, i);
             ftmp_vv[i].push_back(tmp);
         }
     }
@@ -243,8 +244,8 @@ void runBaseType(int argc, char **argv)
     BGZF* foc = bgzf_open(cvgout.c_str(), "w");
     kstring_t ks = {0, 0, NULL};
     for (int i = 0; i < thread; ++i) {
-        subvcf = opt::output + BaseVar::tostring(i) + ".vcf.gz";
-        subcvg = opt::output + BaseVar::tostring(i) + ".cvg.gz";
+        subvcf = fmt::format("{}.{}.vcf.gz", opt::output, i);
+        subcvg = fmt::format("{}.{}.cvg.gz", opt::output, i);
         BGZF* fiv = bgzf_open(subvcf.c_str(), "r");
         BGZF* fic = bgzf_open(subcvg.c_str(), "r");
         while (bgzf_getline(fiv, '\n', &ks) >= 0) {
@@ -272,7 +273,7 @@ void runBaseType(int argc, char **argv)
     std::cout << "basetype computing done -- " << ctime(&tim2);
     clock_t cte = clock();
     double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
-    std::cout << "basetype elapsed secs : " << elapsed_secs << std::endl;
+    std::cout << "basetype elapsed cpu secs : " << elapsed_secs << std::endl;
     std::cout << "basetype done" << std::endl;
 }
 
@@ -281,8 +282,8 @@ void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const Str
     // hold all tmp file pointers
     String headcvg = String(CVG_HEADER);
     String headvcf = String(VCF_HEADER);
-    String vcfout = opt::output + BaseVar::tostring(ithread) + ".vcf.gz";
-    String cvgout = opt::output + BaseVar::tostring(ithread) + ".cvg.gz";
+    String vcfout = fmt::format("{}.{}.vcf.gz", opt::output, ithread);
+    String cvgout = fmt::format("{}.{}.cvg.gz", opt::output, ithread);
     BGZF* fpv = bgzf_open(vcfout.c_str(), "w");
     BGZF* fpc = bgzf_open(cvgout.c_str(), "w");
     BGZF* fpi;
@@ -432,8 +433,6 @@ void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const Str
 
 void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const String& region, const String& fout, int nb, int bc, int ib, int32_t rg_s, int thread)
 {
-    char space = ' ';
-    char comma = ',';
     PosAlleleMapVec allele_mv;
     String names, fw;
     StringV::const_iterator itb = bams.begin() + ib * bc, itb2;
@@ -465,37 +464,36 @@ void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const Strin
     int32_t psize = pv.size();
     int32_t window = psize % thread + psize / thread;
     std::vector<BGZF*> fpv;
-    std::ostringstream out;
-    out << names;
     BGZF* fp;
     for (int i = 0; i < thread; ++i) {
-        fw = fout + ".tmp.batch." + BaseVar::tostring(ib) + ".window." + BaseVar::tostring(i);
+        fw = fmt::format("{}.tmp.batch.{}.window.{}", fout, ib, i);
         fp = bgzf_open(fw.c_str(), "w");
-        if (bgzf_write(fp, out.str().c_str(), out.str().length()) != out.str().length()) {
+        if (bgzf_write(fp, names.c_str(), names.length()) != names.length()) {
             std::cerr << "fail to write - exit" << std::endl;
             exit(EXIT_FAILURE);
         }
         fpv.push_back(fp);
     }
-    out.str(""); out.clear();
+    // std::ostringstream out;
+    String out;
     for (int i = 0, j = 0; i < psize; ++i) {
         auto p = pv[i];
+        out = "";
         for (auto const& m : allele_mv) {
             if (m.count(p)) {
                 auto const& a = m.at(p);
-                if (a.is_indel == 1) out << a.indel << space;
-                else out << a.base << comma << a.mapq << comma << a.qual << comma << a.rpr << comma << a.strand << space;
+                if (a.is_indel == 1) out += fmt::format("{} ", a.indel);
+                else out += fmt::format("{},{},{},{},{} ", a.base, a.mapq, a.qual, a.rpr, a.strand);
             } else {
-                out << ". ";
+                out += ". ";
             }
         }
-        out << "\n";
+        out += "\n";
         if (i == (j + 1) * window) ++j;
-        if (bgzf_write(fpv[j], out.str().c_str(), out.str().length()) != out.str().length()) {
+        if (bgzf_write(fpv[j], out.c_str(), out.length()) != out.length()) {
             std::cerr << "fail to write - exit" << std::endl;
             exit(EXIT_FAILURE);
         }
-        out.str(""); out.clear();
     }
     for (auto & fp : fpv) {
         if (bgzf_close(fp) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
@@ -511,7 +509,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
     if (min_af > 0.001) min_af = 0.001;
     if (opt::maf < min_af ) min_af = opt::maf;
     BaseV bases, quals;
-    std::ostringstream oss;
+    // std::ostringstream oss;
     BtRes res;
     IndelMap indel_m;
     // output cvg;
@@ -535,11 +533,11 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
             }
         }
     }
-    String indels = ".";
+    String oss, indels = ".";
     if (!indel_m.empty()) {
         indels = "";
         for (IndelMap::iterator it = indel_m.begin(); it != indel_m.end(); ++it) {
-            indels += it->first + "|" + BaseVar::tostring(it->second) + ",";
+            indels += fmt::format("{}|{},", it->first, it->second);
         }
         indels.pop_back();
     }
@@ -576,7 +574,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
         sor = 10000.0;
     }
     dep = na + nc + ng + nt;
-    oss << chr << '\t' << p << '\t' << BASE2CHAR[ref_base] << '\t' << dep << '\t' << na << '\t' << nc << '\t' << ng << '\t' << nt << '\t' << indels << '\t' << fs << '\t' << sor << '\t' << ref_fwd << ',' << ref_rev << ',' << alt_fwd << ',' << alt_rev << '\t';
+    oss = fmt::format("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{},{},{},{}\t", chr, p, BASE2CHAR[ref_base], dep, na, nc, ng, nt, indels, fs, sor, ref_fwd, ref_rev, alt_fwd, alt_rev);
     // basetype caller;
     BaseType bt(bases, quals, ref_base, min_af);
     const bool bt_success = bt.LRT();
@@ -604,7 +602,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
                     }
                 }
             }
-            oss << na << ':' << nc << ':' << ng << ':' << nt << '\t';
+            oss += fmt::format("{}:{}:{}:{}\t", na, nc, ng, nt);
             if (!gr_bases.empty()) {
                 // todo: check out the result
                 BaseType gr_bt(gr_bases, gr_quals, ref_base, min_af);
@@ -613,7 +611,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
                 gr_af = "";
                 for (auto b : bt.alt_bases) {
                     if (gr_bt.af_lrt.count(b)) {
-                        gr_af += BaseVar::tostring(gr_bt.af_lrt[b]) + ",";
+                        gr_af += fmt::format("{:.6f},", gr_bt.af_lrt[b]);
                     } else {
                         gr_af += "0,";
                     }
@@ -625,7 +623,8 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
             }
         }
     }
-    res.cvg = oss.str(); res.cvg.pop_back(); res.cvg += "\n";
+    oss.pop_back(); oss += "\n";
+    res.cvg = oss;
     if (bt_success) {
         res.vcf = bt.WriteVcf(bt, chr, p, ref_base, aiv, idx, info, N);
     } else {
@@ -654,7 +653,7 @@ void runPopMatrix (int argc, char **argv)
 
     const int32_t N = bams.size();
     const int32_t M = pv.size();
-    String out = BaseVar::tostring(N) + "\t" + BaseVar::tostring(M) + "\n";
+    String out = fmt::format("{}\t{}\n", N, M);
     BGZF* fp = bgzf_open(opt::output.c_str(), "w");
     if (bgzf_write(fp, out.c_str(), out.length()) != out.length()) {
         std::cerr << "fail to write - exit" << std::endl;
@@ -741,7 +740,7 @@ void runConcat(int argc, char **argv)
     }
 
     fp = bgzf_open(fo.c_str(), "w");
-    ss = BaseVar::tostring(n) + "\t" + BaseVar::tostring(mt) + "\n";
+    ss = fmt::format("{}\t{}\n", n, mt);
     if (bgzf_write(fp, ss.c_str(), ss.length()) != ss.length()) {
         std::cerr << "fail to write - exit" << std::endl;
         exit(EXIT_FAILURE);
