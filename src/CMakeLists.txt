@@ -1,6 +1,6 @@
 set(SRC_LIST BaseVarC.cpp BamProcess.cpp BaseType.cpp algorithm.c)
 
-include_directories("${CMAKE_SOURCE_DIR}/SeqLib" "${CMAKE_SOURCE_DIR}/SeqLib/htslib")
+include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/SeqLib" "${CMAKE_SOURCE_DIR}/SeqLib/htslib")
 # link_directories won't search the directory recursively
 link_directories("${CMAKE_SOURCE_DIR}/SeqLib/src" "${CMAKE_SOURCE_DIR}/SeqLib/htslib")
 
