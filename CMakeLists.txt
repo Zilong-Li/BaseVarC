@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.1)
 
 project(BaseVarC)
 
-set(CMAKE_CXX_FLAGS "-g -Wall -O2 -pthread")
+set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -Wno-unknown-pragmas -O2 -pthread")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Don't use e.g. GNU extension (like -std=gnu++11) for portability
