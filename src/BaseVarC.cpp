@@ -214,7 +214,7 @@ void runBaseType(int argc, char **argv)
         }
     }
     if (!opt::rerun) {
-        ThreadPool pool(thread);
+        BaseVar::ThreadPool pool(thread);
         std::vector<std::future<void>> res;
         std::cerr << "begin to read bams and save as tmp file" << std::endl;
         for (int i = 0; i < nb; ++i) {

@@ -11,6 +11,8 @@
 #include <functional>
 #include <stdexcept>
 
+namespace BaseVar {
+
 class ThreadPool {
 public:
     ThreadPool(size_t);
@@ -95,4 +97,5 @@ inline ThreadPool::~ThreadPool()
         worker.join();
 }
 
+}
 #endif
