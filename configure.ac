@@ -30,17 +30,15 @@ if test "$enable_development"; then
 fi
 
 # Set compiler flags.
-AC_SUBST(AM_CXXFLAGS, "-std=c++11 -Wall -Wextra $fail_on_warning -Wno-unknown-pragmas")
-##AC_SUBST(AM_CXXFLAGS, "-Wall -Wextra $fail_on_warning -Wno-unknown-pragmas")
+AC_SUBST(AM_CXXFLAGS, "-std=c++11 -O3 -Wall -Wextra $fail_on_warning -Wno-unknown-pragmas")
 ##AC_SUBST(CXXFLAGS, "$CXXFLAGS")
 ##AC_SUBST(CFLAGS, "$CFLAGS")
-##AC_SUBST(CPPFLAGS, "$CPPFLAGS $boost_include")
 ## pthread required for htslib to link
 AC_SUBST(LDFLAGS, "$LDFLAGS -pthread")
 ##AC_SUBST(LIBS, "$LIBS")
 
 AC_CONFIG_FILES([Makefile
                  SeqLib/src/Makefile
-	             src/Makefile])
+                 src/Makefile])
 
 AC_OUTPUT
