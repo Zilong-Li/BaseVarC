@@ -1,5 +1,6 @@
 #include "BaseType.h"
-#include <fmt/format.h>
+#define FMT_HEADER_ONLY
+#include "fmt/format.h"
 
 BaseType::BaseType(BaseV bases_, BaseV quals_, int8_t ref, double minaf) : bases(bases_), quals(quals_), ref_base(ref), min_af(minaf), nind(bases.size())
 {

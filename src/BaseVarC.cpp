@@ -5,13 +5,14 @@
 #include <iostream>
 #include <string>
 #include <ctime>
-#include <fmt/format.h>
 
 #include "htslib/bgzf.h"
 #include "RefReader.h"
 #include "BamProcess.h"
 #include "BaseType.h"
 #include "ThreadPool.h"
+#define FMT_HEADER_ONLY
+#include "fmt/format.h"
 
 static const char* BASEVARC_USAGE_MESSAGE = 
 "Program: BaseVarC -- A c version of BaseVar\n"
