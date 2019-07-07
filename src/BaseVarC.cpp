@@ -409,7 +409,7 @@ void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const Str
         }
         if (!aiv.empty()) {
             auto btr = bt_f(p, popg_idx, aiv, idx, N, chr, rg_s, refseq);
-            if (btr.vcf != "NA" && bgzf_write(fpv, btr.vcf.c_str(), btr.vcf.length()) != btr.vcf.length()) {
+            if (!btr.vcf.empty() && bgzf_write(fpv, btr.vcf.c_str(), btr.vcf.length()) != btr.vcf.length()) {
                 std::cerr << "fail to write - exit" << std::endl;
                 exit(EXIT_FAILURE);
             }
@@ -626,8 +626,6 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
     res.cvg = oss;
     if (bt_success) {
         res.vcf = bt.WriteVcf(bt, chr, p, ref_base, aiv, idx, info, N);
-    } else {
-        res.vcf = "NA";
     }
 
     return res;
