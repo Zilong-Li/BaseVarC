@@ -203,7 +203,7 @@ String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, in
         out += it->first + "=" + it->second + ";";
     }
     out.pop_back();
-    out += '\t' + samgt + '\n';
+    out += fmt::format("\tGT:AB:SO:BP\t{}\n", samgt);
 
     return out;
 }
@@ -215,6 +215,7 @@ void BaseType::stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVe
     s.ref_fwd = 0; s.ref_rev = 0;
     s.alt_fwd = 0; s.alt_rev = 0;
     for (auto const& ai: aiv) {
+        if (ai.is_indel == 1 || ai.base == 4) continue;
         if (ai.base == ref_base) {
             ref_quals.push_back(ai.qual);
             ref_mapqs.push_back(ai.mapq);

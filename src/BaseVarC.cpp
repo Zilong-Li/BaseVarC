@@ -461,7 +461,7 @@ void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const Strin
             std::cerr << "Warning: could not close file " << bam << std::endl;
         }
     }
-    names += "\n";    // we keep '\t' ahead of '\n' so that we can join different batches' names easily.
+    names += "\n";    // we keep '\t' ahead of '\n' in order to connect different batches' names directly
     int32_t psize = pv.size();
     int32_t window = psize % thread + psize / thread;
     std::vector<BGZF*> fpv;
@@ -589,21 +589,22 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
             for (auto i : it->second) {
                 if (idx.count(i)) {
                     auto & a = aiv[idx.at(i)];
-                    switch (a.base) {
-                    case 0 : na += 1; break;
-                    case 1 : nc += 1; break;
-                    case 2 : ng += 1; break;
-                    case 3 : nt += 1; break;
-                    }
-                    if (bt_success && a.is_indel == 0) {
-                        gr_bases.push_back(a.base);
-                        gr_quals.push_back(a.qual);
+                    if (a.is_indel == 0) {
+                        switch (a.base) {
+                        case 0 : na += 1; break;
+                        case 1 : nc += 1; break;
+                        case 2 : ng += 1; break;
+                        case 3 : nt += 1; break;
+                        }
+                        if (bt_success) {
+                            gr_bases.push_back(a.base);
+                            gr_quals.push_back(a.qual);
+                        }
                     }
                 }
             }
             oss += fmt::format("{}:{}:{}:{}\t", na, nc, ng, nt);
             if (!gr_bases.empty()) {
-                // todo: check out the result
                 BaseType gr_bt(gr_bases, gr_quals, ref_base, min_af);
                 gr_bt.SetBase(base_comb);
                 gr_bt.LRT();
@@ -619,6 +620,8 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
                 gr_bases.clear();
                 gr_quals.clear();
                 info.insert({it->first + "_AF", gr_af});
+            } else {
+                info.insert({it->first + "_AF", "0"});
             }
         }
     }
