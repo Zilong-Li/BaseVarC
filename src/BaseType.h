@@ -2,9 +2,8 @@
 #define __BASEVARC_BASE_TYPE_H__
 
 #include <algorithm>
-#include <complex>
-#include <sstream>
-#include "Stats.h"
+#include "Algorithm.h"
+#include "BamProcess.h"
 
 #define LRT_THRESHOLD 24    // chi-pvalue of 10^-6
 #define MLN10TO10 -0.23025850929940458    // -log(10)/10
@@ -20,15 +19,45 @@ typedef std::vector<BaseV> CombV;
 typedef std::map<String, String> InfoM;
 typedef std::unordered_map<int32_t, int32_t> DepM;
 static const int BASE[4] = {0, 1, 2, 3};
+static const char STRAND[2] = {'-', '+'};
+static const char BASE2CHAR[4] = {'A', 'C', 'G', 'T'};
+static const char BASE_INT8_TABLE[128] = {
+    -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1,
+    -1,  0, -1,  1, -1, -1, -1,  2,
+    -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1,  3, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1,
+};
+
+struct Stat
+{
+    double phred_qual;
+    double phred_mapq;
+    double phred_rpr;
+    double fs;
+    double sor;
+    int ref_fwd;
+    int ref_rev;
+    int alt_fwd;
+    int alt_rev;
+};
 
 class BaseType
 {
  public:
     BaseType(BaseV base, BaseV qual, int8_t ref, double minaf);
-    ~BaseType() {
-        delete []ind_allele_likelihood;
-        delete []init_allele_freq;
-    }
+    ~BaseType() {}
 
     void SetBase (const BaseV& v) { this->base_comb = v; }
     bool LRT();
@@ -47,8 +76,8 @@ class BaseType
     const int8_t ref_base;
     const double min_af;
     const int32_t nind;
-    double *ind_allele_likelihood;
-    double *init_allele_freq;
+    ProbV ind_allele_likelihood;
+    ProbV init_allele_freq;
 
     void stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVector& aiv, Stat& s);
     void combs(const BaseV& bases, CombV& comb_v, int32_t k);

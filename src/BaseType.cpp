@@ -2,13 +2,11 @@
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
-BaseType::BaseType(BaseV bases_, BaseV quals_, int8_t ref, double minaf) : bases(bases_), quals(quals_), ref_base(ref), min_af(minaf), nind(bases.size())
+BaseType::BaseType(BaseV bases_, BaseV quals_, int8_t ref, double minaf) : bases(bases_), quals(quals_), ref_base(ref), min_af(minaf), nind(bases.size()), ind_allele_likelihood(nind * NTYPE), init_allele_freq(NTYPE)
 {
     var_qual = 0;
     depth_total = 0;
     depth = { {0, 0},{1, 0},{2, 0},{3, 0} };
-    init_allele_freq = new double[NTYPE](); // @WATCHOUT
-    ind_allele_likelihood = new double[nind * NTYPE]; // @WATCHOUT
     for (int32_t i = 0; i < nind; ++i) {
         for (int j = 0; j < NTYPE; ++j) {
             if (bases[i] == BASE[j]) {
@@ -42,21 +40,18 @@ void BaseType::SetAlleleFreq(const BaseV& bases)
 
 void BaseType::UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int32_t k)
 {
-    double *marginal_likelihood = new double[nind](); // maybe switch to smart pointer
-    double *expect_allele_prob = new double[NTYPE]();
+    ProbV marginal_likelihood(nind), expect_allele_prob(NTYPE);
     double freq_sum, likelihood_sum;
     double epsilon = 0.001;
     int iter_num = 100;
     ProbV expect_prob;
-    bc.clear();
-    lr.clear();
-    bp.clear();
+    bc.clear(); lr.clear(); bp.clear();
     combs(bases, bc, k);
     for (auto const& b: bc) {
         SetAlleleFreq(b);
         freq_sum = 0;
         for (int i = 0; i < NTYPE; ++i) freq_sum += init_allele_freq[i];
-        if (freq_sum == 0) continue;  // skip coverage = 0, this may be redundant;
+        if (freq_sum == 0) continue;  // skip coverage = 0, this may be redundant but it's ok;
         // run EM
         EM(init_allele_freq, ind_allele_likelihood, marginal_likelihood, expect_allele_prob, nind, NTYPE, iter_num, epsilon);
         likelihood_sum = 0;
@@ -72,9 +67,6 @@ void BaseType::UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int3
         lr.push_back(likelihood_sum);
         bp.push_back(expect_prob);
     }
-
-    delete []marginal_likelihood;
-    delete []expect_allele_prob;
 }
 
 bool BaseType::LRT()
@@ -185,9 +177,9 @@ String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, in
     caf.pop_back(); info.insert({"CM_CAF", caf});
     info.insert({"QD", fmt::format("{:.3f}", bt.var_qual/ad_sum)});
     info.insert({"CM_DP", fmt::format("{}", bt.depth_total)});
-    info.insert({"MQRankSum", fmt::format("{:.6f}", st.phred_mapq)});
-    info.insert({"ReadPosRankSum", fmt::format("{:.6f}", st.phred_rpr)});
-    info.insert({"BaseQRankSum", fmt::format("{:.6f}", st.phred_qual)});
+    info.insert({"MQRankSum", fmt::format("{:.3f}", st.phred_mapq)});
+    info.insert({"ReadPosRankSum", fmt::format("{:.3f}", st.phred_rpr)});
+    info.insert({"BaseQRankSum", fmt::format("{:.3f}", st.phred_qual)});
     info.insert({"FS", fmt::format("{:.3f}", st.fs)});
     info.insert({"SOR", fmt::format("{:.3f}", st.sor)});
     info.insert({"SB_REF", fmt::format("{},{}", st.ref_fwd, st.ref_rev)});
@@ -203,7 +195,7 @@ String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, in
         out += it->first + "=" + it->second + ";";
     }
     out.pop_back();
-    out += fmt::format("\tGT:AB:SO:BP\t{}\n", samgt);
+    out += "\tGT:AB:SO:BP\t" + samgt + "\n";
 
     return out;
 }
@@ -239,23 +231,10 @@ void BaseType::stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVe
             }
         }
     }
-    double z_qual = RankSumTest(ref_quals.data(), ref_quals.size(), alt_quals.data(), alt_quals.size());
-    double z_mapq = RankSumTest(ref_mapqs.data(), ref_mapqs.size(), alt_mapqs.data(), alt_mapqs.size());
-    double z_rpr  = RankSumTest(ref_rprs.data(), ref_rprs.size(), alt_rprs.data(), alt_rprs.size());
-    s.phred_qual = -10 * log10(2 * normsf(abs(z_qual)));
-    s.phred_mapq = -10 * log10(2 * normsf(abs(z_mapq)));
-    s.phred_rpr  = -10 * log10(2 * normsf(abs(z_rpr)));
-    if (std::isinf(s.phred_qual)) s.phred_qual = 10000;
-    else if (!(s.phred_qual != 0)) s.phred_qual = 0;
-    if (std::isinf(s.phred_mapq)) s.phred_mapq = 10000;
-    else if (!(s.phred_mapq != 0)) s.phred_mapq = 0;
-    if (std::isinf(s.phred_rpr)) s.phred_rpr = 10000;
-    else if (!(s.phred_rpr != 0)) s.phred_rpr = 0;
-    double left_p, right_p, twoside_p;
-    kt_fisher_exact(s.ref_fwd, s.ref_rev, s.alt_fwd, s.alt_rev, &left_p, &right_p, &twoside_p);
-    s.fs = -10 * log10(twoside_p);
-    if (std::isinf(s.fs)) s.fs = 10000;
-    else if (s.fs == 0) s.fs = 0;
+    s.phred_mapq = RankSumTest(ref_mapqs, alt_mapqs);
+    s.phred_qual = RankSumTest(ref_quals, alt_quals);
+    s.phred_rpr = RankSumTest(ref_rprs, alt_rprs);
+    s.fs = bt_fisher_exact(s.ref_fwd, s.ref_rev, s.alt_fwd, s.alt_rev);
     if (s.alt_fwd * s.ref_rev > 0) {
         s.sor = static_cast<double>(s.ref_fwd * s.alt_rev) / (s.ref_rev * s.alt_fwd);
     } else {

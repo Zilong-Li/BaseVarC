@@ -1,16 +1,18 @@
-#ifndef BASEVAR_ALGORITHM_H
-#define BASEVAR_ALGORITHM_H
+#ifndef BASEVARC_ALGORITHM_H
+#define BASEVARC_ALGORITHM_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <cmath>
+#include "htslib/kfunc.h"
 
-double RankSumTest(double *x, int n1, double *y, int n2);
+double chisf(double x, double k);
 
-void EM(double *init_allele_freq, double *ind_allele_likelihood, double *marginal_likelihood, double *expect_allele_prob, int nsample, int ntype, int iter_num, double epsilon);
+double normsf(double x);
 
-#ifdef __cplusplus
-}
-#endif
+double bt_fisher_exact(int n11, int n12, int n21, int n22);
+
+
+double RankSumTest(std::vector<double>& x, std::vector<double>& y);
+
+void EM(std::vector<double>& init_allele_freq, const std::vector<double>& ind_allele_likelihood, std::vector<double>& marginal_likelihood, std::vector<double>& expect_allele_prob, int32_t nsample, int ntype, int iter_num, double epsilon);
 
 #endif

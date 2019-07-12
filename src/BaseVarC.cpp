@@ -419,7 +419,7 @@ void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const Str
             }
             aiv.clear();
             idx.clear();
-            if (!(++count % 1000)) std::cerr << "basetype completed " << count << " sites" << std::endl;
+            if (!(++count % 1000)) std::cerr << "basetype completed " << count << " sites -- thread" << ithread << std::endl;
         }
     }
     if (bgzf_close(fpv) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
@@ -504,7 +504,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
 {
     int8_t alt_base, ref_base;
     int32_t dep, na, nc, ng, nt, ref_fwd, ref_rev, alt_fwd, alt_rev;
-    double fs, sor, left_p, right_p, twoside_p;
+    double fs, sor;
     double min_af = 100.0 / N;
     if (min_af > 0.001) min_af = 0.001;
     if (opt::maf < min_af ) min_af = opt::maf;
@@ -563,10 +563,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
             }
         }
     }
-    kt_fisher_exact(ref_fwd, ref_rev, alt_fwd, alt_rev, &left_p, &right_p, &twoside_p);
-    fs = -10 * log10(twoside_p);
-    if (std::isinf(fs)) fs = 10000.0;
-    else if (fs == 0) fs = 0.0;
+    fs = bt_fisher_exact(ref_fwd, ref_rev, alt_fwd, alt_rev);
     if (alt_fwd * ref_rev > 0) {
         sor = static_cast<double>(ref_fwd * alt_rev) / (ref_rev * alt_fwd);
     } else {
