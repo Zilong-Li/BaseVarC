@@ -2,6 +2,7 @@
 #define BASEVARC_ALGORITHM_H
 
 #include <cmath>
+#include "BaseVarUtils.h"
 #include "htslib/kfunc.h"
 
 double chisf(double x, double k);
