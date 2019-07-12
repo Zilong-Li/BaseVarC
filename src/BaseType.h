@@ -47,21 +47,22 @@ struct Stat
     double phred_rpr;
     double fs;
     double sor;
-    int ref_fwd;
-    int ref_rev;
-    int alt_fwd;
-    int alt_rev;
+    int ref_fwd = 0;
+    int ref_rev = 0;
+    int alt_fwd = 0;
+    int alt_rev = 0;
 };
 
 class BaseType
 {
+    friend String WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, InfoM& info, int32_t N);
+
  public:
     BaseType(BaseV base, BaseV qual, int8_t ref, double minaf);
     ~BaseType() {}
 
     void SetBase (const BaseV& v) { this->base_comb = v; }
     bool LRT();
-    String WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, InfoM& info, int32_t N);
 
     double var_qual;
     double depth_total;
@@ -79,9 +80,12 @@ class BaseType
     ProbV ind_allele_likelihood;
     ProbV init_allele_freq;
 
-    void stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVector& aiv, Stat& s);
+    // void stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVector& aiv, Stat& s);
+
     void combs(const BaseV& bases, CombV& comb_v, int32_t k);
+
     void SetAlleleFreq(const BaseV& bases);
+
     void UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int32_t k);
 };
 

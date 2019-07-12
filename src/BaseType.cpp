@@ -137,7 +137,7 @@ bool BaseType::LRT()
     }
 }
 
-String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, InfoM& info, int32_t N)
+String WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, InfoM& info, int32_t N)
 {
     std::unordered_map<uint8_t, String> alt_gt;
     String gt;
@@ -161,7 +161,42 @@ String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, in
         }
     }
     Stat st;
-    stats(ref_base, bt.alt_bases, aiv, st);
+    ProbV ref_quals, ref_mapqs, ref_rprs;
+    ProbV alt_quals, alt_mapqs, alt_rprs;
+    for (auto const& ai: aiv) {
+        if (ai.is_indel == 1 || ai.base == 4) continue;
+        if (ai.base == ref_base) {
+            ref_quals.push_back(ai.qual);
+            ref_mapqs.push_back(ai.mapq);
+            ref_rprs.push_back(ai.rpr);
+        } else if (std::find(bt.alt_bases.begin(), bt.alt_bases.end(), ai.base) != bt.alt_bases.end()) {
+            alt_quals.push_back(ai.qual);
+            alt_mapqs.push_back(ai.mapq);
+            alt_rprs.push_back(ai.rpr);
+        }
+        if (ai.strand == 1) {
+            if (ai.base == ref_base) {
+                st.ref_fwd += 1;
+            } else if (std::find(bt.alt_bases.begin(), bt.alt_bases.end(), ai.base) != bt.alt_bases.end()) {
+                st.alt_fwd += 1;
+            }
+        } else if (ai.strand == 0) {
+            if (ai.base == ref_base) {
+                st.ref_rev += 1;
+            } else if (std::find(bt.alt_bases.begin(), bt.alt_bases.end(), ai.base) != bt.alt_bases.end()) {
+                st.alt_rev += 1;
+            }
+        }
+    }
+    st.phred_mapq = RankSumTest(ref_mapqs, alt_mapqs);
+    st.phred_qual = RankSumTest(ref_quals, alt_quals);
+    st.phred_rpr = RankSumTest(ref_rprs, alt_rprs);
+    st.fs = bt_fisher_exact(st.ref_fwd, st.ref_rev, st.alt_fwd, st.alt_rev);
+    if (st.alt_fwd * st.ref_rev > 0) {
+        st.sor = static_cast<double>(st.ref_fwd * st.alt_rev) / (st.ref_rev * st.alt_fwd);
+    } else {
+        st.sor = 10000.0;
+    }
     double ad_sum = 0;
     String ac, af, caf, alt;
     for (auto b : bt.alt_bases) {
@@ -200,47 +235,6 @@ String BaseType::WriteVcf(const BaseType& bt, const String& chr, int32_t pos, in
     return out;
 }
 
-void BaseType::stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVector& aiv, Stat& s)
-{
-    ProbV ref_quals, ref_mapqs, ref_rprs;
-    ProbV alt_quals, alt_mapqs, alt_rprs;
-    s.ref_fwd = 0; s.ref_rev = 0;
-    s.alt_fwd = 0; s.alt_rev = 0;
-    for (auto const& ai: aiv) {
-        if (ai.is_indel == 1 || ai.base == 4) continue;
-        if (ai.base == ref_base) {
-            ref_quals.push_back(ai.qual);
-            ref_mapqs.push_back(ai.mapq);
-            ref_rprs.push_back(ai.rpr);
-        } else if (std::find(alt_bases.begin(), alt_bases.end(), ai.base) != alt_bases.end()) {
-            alt_quals.push_back(ai.qual);
-            alt_mapqs.push_back(ai.mapq);
-            alt_rprs.push_back(ai.rpr);
-        }
-        if (ai.strand == 1) {
-            if (ai.base == ref_base) {
-                s.ref_fwd += 1;
-            } else if (std::find(alt_bases.begin(), alt_bases.end(), ai.base) != alt_bases.end()) {
-                s.alt_fwd += 1;
-            }
-        } else if (ai.strand == 0) {
-            if (ai.base == ref_base) {
-                s.ref_rev += 1;
-            } else if (std::find(alt_bases.begin(), alt_bases.end(), ai.base) != alt_bases.end()) {
-                s.alt_rev += 1;
-            }
-        }
-    }
-    s.phred_mapq = RankSumTest(ref_mapqs, alt_mapqs);
-    s.phred_qual = RankSumTest(ref_quals, alt_quals);
-    s.phred_rpr = RankSumTest(ref_rprs, alt_rprs);
-    s.fs = bt_fisher_exact(s.ref_fwd, s.ref_rev, s.alt_fwd, s.alt_rev);
-    if (s.alt_fwd * s.ref_rev > 0) {
-        s.sor = static_cast<double>(s.ref_fwd * s.alt_rev) / (s.ref_rev * s.alt_fwd);
-    } else {
-        s.sor = 10000;
-    }
-}
 
 void BaseType::combs(const BaseV& bases, CombV& comb_v, int32_t k)
 {

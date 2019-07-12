@@ -625,7 +625,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
     oss.pop_back(); oss += "\n";
     res.cvg = oss;
     if (bt_success) {
-        res.vcf = bt.WriteVcf(bt, chr, p, ref_base, aiv, idx, info, N);
+        res.vcf = WriteVcf(bt, chr, p, ref_base, aiv, idx, info, N);
     }
 
     return res;
