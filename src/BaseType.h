@@ -53,6 +53,8 @@ struct Stat
     int alt_rev = 0;
 };
 
+void combs_(const BaseV& bases, CombV& comb_v, int32_t k);
+
 class BaseType
 {
     friend String WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, InfoM& info, int32_t N);
@@ -79,10 +81,6 @@ class BaseType
     const int32_t nind;
     ProbV ind_allele_likelihood;
     ProbV init_allele_freq;
-
-    // void stats(int8_t ref_base, const BaseV& alt_bases, const AlleleInfoVector& aiv, Stat& s);
-
-    void combs(const BaseV& bases, CombV& comb_v, int32_t k);
 
     void SetAlleleFreq(const BaseV& bases);
 

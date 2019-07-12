@@ -46,7 +46,7 @@ void BaseType::UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int3
     int iter_num = 100;
     ProbV expect_prob;
     bc.clear(); lr.clear(); bp.clear();
-    combs(bases, bc, k);
+    combs_(bases, bc, k);
     for (auto const& b: bc) {
         SetAlleleFreq(b);
         freq_sum = 0;
@@ -236,7 +236,7 @@ String WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_b
 }
 
 
-void BaseType::combs(const BaseV& bases, CombV& comb_v, int32_t k)
+void combs_(const BaseV& bases, CombV& comb_v, int32_t k)
 {
     // k <= n
     int32_t n = bases.size();
