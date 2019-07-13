@@ -362,7 +362,6 @@ void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const Str
     DepM idx;
     int32_t j, k, i, count=0;
     std::cerr << "begin to load data and run basetype" << std::endl;
-    const String stag = "+-N.";
     char *buf=NULL, *str=NULL, *str2=NULL, *pti=NULL, *pto=NULL;
     int32_t window = pv.size() % thread + pv.size() / thread;
     IntV::const_iterator itp, itp2;
@@ -376,7 +375,7 @@ void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const Str
             if (bgzf_getline(fp, '\n', &ks) >= 0) {
                 buf = ks.s;
                 while ((str = strtok_r(buf, " ", &pto)) != NULL) {
-                    if (stag.find(str[0]) == std::string::npos) {
+                    if (str[0] != '+' && str[0] != '-' && str[0] != 'N' && str[0] != '.') {
                         buf = str;
                         ai.is_indel = 0;
                         for (i = 0; i < 5; ++i) {
