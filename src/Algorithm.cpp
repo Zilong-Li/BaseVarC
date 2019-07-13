@@ -9,7 +9,8 @@ double chisf(double x, double k)
 double normsf(double x)
 {
     // mean = 0, sd = 1
-    return 1 - (1 + erf(x/std::sqrt(2.0)))/2;
+    // for much accuracy, using complementary error function implemented in kfunc.h
+    return kf_erfc(static_cast<double>(x/std::sqrt(2.0)))/2.0;
 }
 
 double bt_fisher_exact(int n11, int n12, int n21, int n22)
@@ -58,9 +59,9 @@ double RankSumTest(std::vector<double>& x, std::vector<double>& y)
     double r1 = rankR1(x, n1);
     double expected = (double)(n1 * (n1 + n2 + 1)) / 2.0;
     double z = (r1 - expected) / std::sqrt(static_cast<double>(n1*n2*(n1+n2+1))/12.0);
-    double p = -10 * std::log10(2 * normsf(std::abs(z))); // phred score
+    double p = -10 * std::log10(2 * normsf(std::abs(z))); // phred score value
     if (std::isinf(p)) p = 10000.0;
-    else if (!(p != 0)) p = 0.0;
+    else if (p == 0) p = 0.0;
 
     return p;
 }

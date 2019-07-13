@@ -120,7 +120,7 @@ bool BaseType::LRT()
             var_qual = 5000.0;  // mono-allelelic
         } else {
             if (chi_sqrt_t <= 0) {
-                var_qual = 0;
+                var_qual = 0.0;
                 return true;
             }
             chi_prob = chisf(chi_sqrt_t, 1.0);  // may be nan value;
@@ -129,7 +129,7 @@ bool BaseType::LRT()
             } else {
                 var_qual = 10000;
             }
-            if (var_qual == 0) var_qual = 0;  // output -0.0 to 0;
+            if (var_qual == 0) var_qual = 0.0;  // output -0.0 to 0;
         }
         return true;
     } else {
@@ -140,12 +140,14 @@ bool BaseType::LRT()
 String WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, InfoM& info, int32_t N)
 {
     std::unordered_map<uint8_t, String> alt_gt;
-    String gt;
+    String gt, samgt;
     for (size_t i = 0; i < bt.alt_bases.size(); ++i) {
         gt = fmt::format("./{}", i+1);
         alt_gt.insert({bt.alt_bases[i], gt});
     }
-    String samgt = "";
+    Stat st;
+    ProbV ref_quals, ref_mapqs, ref_rprs;
+    ProbV alt_quals, alt_mapqs, alt_rprs;
     for (int32_t i = 0; i < N; ++i) {
         if (idx.count(i) == 0) {
             samgt += "./.\t";
@@ -160,9 +162,6 @@ String WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_b
             samgt += fmt::format("{}:{}:{}:{:.6f}\t", gt, BASE2CHAR[a.base], STRAND[a.strand], 1 - exp(MLN10TO10 * a.qual));
         }
     }
-    Stat st;
-    ProbV ref_quals, ref_mapqs, ref_rprs;
-    ProbV alt_quals, alt_mapqs, alt_rprs;
     for (auto const& ai: aiv) {
         if (ai.is_indel == 1 || ai.base == 4) continue;
         if (ai.base == ref_base) {
