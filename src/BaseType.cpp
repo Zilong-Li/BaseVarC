@@ -160,30 +160,28 @@ String WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_b
                 gt = alt_gt[a.base];
             }
             samgt += fmt::format("{}:{}:{}:{:.6f}\t", gt, BASE2CHAR[a.base], STRAND[a.strand], 1 - exp(MLN10TO10 * a.qual));
-        }
-    }
-    for (auto const& ai: aiv) {
-        if (ai.is_indel == 1 || ai.base == 4) continue;
-        if (ai.base == ref_base) {
-            ref_quals.push_back(ai.qual);
-            ref_mapqs.push_back(ai.mapq);
-            ref_rprs.push_back(ai.rpr);
-        } else if (std::find(bt.alt_bases.begin(), bt.alt_bases.end(), ai.base) != bt.alt_bases.end()) {
-            alt_quals.push_back(ai.qual);
-            alt_mapqs.push_back(ai.mapq);
-            alt_rprs.push_back(ai.rpr);
-        }
-        if (ai.strand == 1) {
-            if (ai.base == ref_base) {
-                st.ref_fwd += 1;
-            } else if (std::find(bt.alt_bases.begin(), bt.alt_bases.end(), ai.base) != bt.alt_bases.end()) {
-                st.alt_fwd += 1;
+            if (a.is_indel == 1 || a.base == 4) continue;
+            if (a.base == ref_base) {
+                ref_quals.push_back(a.qual);
+                ref_mapqs.push_back(a.mapq);
+                ref_rprs.push_back(a.rpr);
+            } else if (std::find(bt.alt_bases.begin(), bt.alt_bases.end(), a.base) != bt.alt_bases.end()) {
+                alt_quals.push_back(a.qual);
+                alt_mapqs.push_back(a.mapq);
+                alt_rprs.push_back(a.rpr);
             }
-        } else if (ai.strand == 0) {
-            if (ai.base == ref_base) {
-                st.ref_rev += 1;
-            } else if (std::find(bt.alt_bases.begin(), bt.alt_bases.end(), ai.base) != bt.alt_bases.end()) {
-                st.alt_rev += 1;
+            if (a.strand == 1) {
+                if (a.base == ref_base) {
+                    st.ref_fwd += 1;
+                } else if (std::find(bt.alt_bases.begin(), bt.alt_bases.end(), a.base) != bt.alt_bases.end()) {
+                    st.alt_fwd += 1;
+                }
+            } else if (a.strand == 0) {
+                if (a.base == ref_base) {
+                    st.ref_rev += 1;
+                } else if (std::find(bt.alt_bases.begin(), bt.alt_bases.end(), a.base) != bt.alt_bases.end()) {
+                    st.alt_rev += 1;
+                }
             }
         }
     }
