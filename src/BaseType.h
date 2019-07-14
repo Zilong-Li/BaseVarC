@@ -5,7 +5,7 @@
 #include "Algorithm.h"
 #include "BamProcess.h"
 
-#define LRT_THRESHOLD 24    // chi-pvalue of 10^-6
+#define LRT_THRESHOLD 24.0    // chi-pvalue of 10^-6
 #define MLN10TO10 -0.23025850929940458    // -log(10)/10
 #define MINAF 0.001                       // base freqence threshold
 #define QUAL_THRESHOLD 60   // -10 * lg(10^-6)

@@ -60,6 +60,7 @@ void BaseType::UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int3
             // reset array elements to 0
             marginal_likelihood[i] = 0;
         }
+        expect_prob.clear();
         for (int i = 0; i < NTYPE; ++i) {
             expect_prob.push_back(expect_allele_prob[i]);
             expect_allele_prob[i] = 0;
@@ -72,16 +73,15 @@ void BaseType::UpdateF(const BaseV& bases, CombV& bc, ProbV& lr, FreqV& bp, int3
 bool BaseType::LRT()
 {
     if (depth_total == 0) return false;
-    BaseV bases;
+    bases.clear();
     for (auto b : base_comb) {
         // filter bases by count freqence >= min_af
         if ((depth[b]/depth_total) >= min_af) {
             bases.push_back(b);
         }
     }
-    int n = bases.size();
+    int32_t n = bases.size();
     if (n == 0) return false;
-    int i_min;
     CombV bc;
     FreqV bp;
     ProbV lr_null, lrt_chi;
@@ -89,7 +89,8 @@ bool BaseType::LRT()
     ProbV base_frq = bp[0];
     double lr_alt_t = lr_null[0];
     double chi_sqrt_t = 0.0;
-    for (int k = n - 1; k > 0; --k) {
+    size_t i_min;
+    for (int32_t k = n - 1; k > 0; --k) {
         UpdateF(bases, bc, lr_null, bp, k);
         lrt_chi.clear();
         for (auto & lr_null_t: lr_null) {
@@ -208,7 +209,7 @@ String WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_b
     af.pop_back(); info.insert({"CM_AF", af});
     caf.pop_back(); info.insert({"CM_CAF", caf});
     info.insert({"QD", fmt::format("{:.3f}", bt.var_qual/ad_sum)});
-    info.insert({"CM_DP", fmt::format("{}", bt.depth_total)});
+    info.insert({"CM_DP", fmt::format("{:.0f}", bt.depth_total)});
     info.insert({"MQRankSum", fmt::format("{:.3f}", st.phred_mapq)});
     info.insert({"ReadPosRankSum", fmt::format("{:.3f}", st.phred_rpr)});
     info.insert({"BaseQRankSum", fmt::format("{:.3f}", st.phred_qual)});
