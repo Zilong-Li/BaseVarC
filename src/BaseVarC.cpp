@@ -234,10 +234,6 @@ void runBaseType(int argc, char **argv)
     for (int i = 0; i < thread; ++i) {
         workers.push_back(std::thread(bt_s, std::cref(ftmp_vv[i]), std::cref(pv), std::cref(refseq), std::cref(chr), rg_s, N, thread, i));
     }
-    for (std::thread & t : workers) {
-        if (t.joinable()) t.join();
-    }
-    workers.clear();
     // merge all subfile
     String vcfout = opt::output + ".vcf.gz", subvcf;
     String cvgout = opt::output + ".cvg.gz", subcvg;
@@ -245,6 +241,8 @@ void runBaseType(int argc, char **argv)
     BGZF* foc = bgzf_open(cvgout.c_str(), "w");
     kstring_t ks = {0, 0, NULL};
     for (int i = 0; i < thread; ++i) {
+        auto & t = workers[i];
+        if (t.joinable()) t.join();
         subvcf = fmt::format("{}.{}.vcf.gz", opt::output, i);
         subcvg = fmt::format("{}.{}.cvg.gz", opt::output, i);
         BGZF* fiv = bgzf_open(subvcf.c_str(), "r");
