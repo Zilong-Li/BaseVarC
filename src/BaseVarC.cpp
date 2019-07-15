@@ -15,14 +15,14 @@
 #include "fmt/format.h"
 
 static const char* BASEVARC_USAGE_MESSAGE = 
-"Program: BaseVarC -- A c version of BaseVar\n"
+"Program: BaseVarC -- A C Version of BaseVar\n"
 "Contact: Zilong Li [lizilong@bgi.com]\n"
 "Usage  : BaseVarC <command> [options]\n\n"
 "Commands:\n"
 "           basetype       Variants Caller\n"
-"           popmatrix      Create population matrix at specific positions.\n" 
-"           concat         Concat popmatrix.\n" 
-"           merge          Merge vcf/cvg files.\n";
+"           popmatrix      Create population matrix\n" 
+"           concat         Concat popmatrix\n" 
+"           merge          Merge vcf/cvg files\n";
 
 static const char* BASETYPE_MESSAGE = 
 "Program: BaseVarC basetype\n"
@@ -35,12 +35,12 @@ static const char* BASETYPE_MESSAGE =
 "  --region,     -s        Samtools-like region\n"
 "  --group,      -g        Population group information <SampleID Group>\n"
 "  --mapq,       -q <INT>  Mapping quality >= INT [10]\n"
-"  --thread,     -t <INT>  Number of thread\n"
+"  --thread,     -t <INT>  Number of threads\n"
 "  --batch,      -b <INT>  Number of samples each batch\n"
 "  --maf,                  Minimum allele count frequency [min(0.001, 100/N, maf)]\n"
 "  --load,                 Load data only\n"
 "  --rerun,                Read previous loaded data and rerun\n"
-"  --keep_tmp              Don't remove tmp files when finished basetype\n"
+"  --keep_tmp              Don't remove tmp files when basetype finished\n"
 "  --verbose,    -v        Set verbose output\n";
 
 static const char* POPMATRIX_MESSAGE = 
@@ -51,7 +51,7 @@ static const char* POPMATRIX_MESSAGE =
 "  --input,      -i        BAM/CRAM files list, one file per row.\n"
 "  --posfile,    -p        Position file <CHRID POS REF ALT>\n"
 "  --output,     -o        Output filename prefix(.mat.gz will be added auto)\n"
-"  --mapq,       -q <INT>  Mapping quality >= INT. [10]\n"
+"  --mapq,       -q <INT>  Mapping quality >= INT [10]\n"
 "  --verbose,    -v        Set verbose output\n";
 
 static const char* CONCAT_MESSAGE =
@@ -263,11 +263,18 @@ void runBaseType(int argc, char **argv)
                 exit(EXIT_FAILURE);
             }
         }
-        std::remove(subvcf.c_str());
-        std::remove(subcvg.c_str());
     }
+    std::cout << "merge subfiles done -- " << std::endl;
     if (bgzf_close(fov) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
     if (bgzf_close(foc) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
+    if (!opt::keep_tmp) {
+        for (int i = 0; i < thread; ++i) {
+            subvcf = fmt::format("{}.{}.vcf.gz", opt::output, i);
+            subcvg = fmt::format("{}.{}.cvg.gz", opt::output, i);
+            std::remove(subvcf.c_str());
+            std::remove(subcvg.c_str());
+        }
+    }
 
     // done
     time_t tim2 = time(0);
