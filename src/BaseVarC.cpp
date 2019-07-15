@@ -574,7 +574,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
         sor = 10000.0;
     }
     dep = na + nc + ng + nt;
-    oss = fmt::format("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{},{},{},{}\t", chr, p, BASE2CHAR[ref_base], dep, na, nc, ng, nt, indels, fs, sor, ref_fwd, ref_rev, alt_fwd, alt_rev);
+    oss = fmt::format("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{:.3f}\t{:.3f}\t{},{},{},{}\t", chr, p, BASE2CHAR[ref_base], dep, na, nc, ng, nt, indels, fs, sor, ref_fwd, ref_rev, alt_fwd, alt_rev);
     // basetype caller;
     BaseType bt(bases, quals, ref_base, min_af);
     const bool bt_success = bt.LRT();
