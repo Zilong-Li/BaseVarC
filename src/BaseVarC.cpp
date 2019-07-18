@@ -207,14 +207,35 @@ void runBaseType(int argc, char **argv)
     int thread = opt::thread;
     std::vector<StringV> ftmp_vv(thread);
     int bc = opt::batch;
-    int nb = 1 + (N - 1) / bc;    // ceiling
-    for (int i = 0; i < thread; ++i) {
-        for (int j = 0; j < nb; ++j) {
+    int ngz = 0, nb = 1 + (N - 1) / bc;    // ceiling
+    int bk = nb - 1;
+    BGZF* fp = NULL;
+    for (int j = 0; j < nb; ++j) {
+        int k = 0;
+        for (int i = 0; i < thread; ++i) {
             tmp = fmt::format("{}.tmp.batch.{}.window.{}", opt::output, j, i);
             ftmp_vv[i].push_back(tmp);
+            if (bgzf_is_bgzf(tmp.c_str())) {
+                fp = bgzf_open(tmp.c_str(), "r");
+                if (bgzf_check_EOF(fp) == 1) { k +=1; ngz += 1; }
+            }
         }
+        if (k != thread) bk = bk > j ? j : bk;
     }
-    if (!opt::rerun) {
+    if (opt::rerun && ngz > 0) {
+        if (ngz != thread * nb) {
+            BaseVar::ThreadPool pool(thread);
+            std::vector<std::future<void>> res;
+            std::cerr << "begin to read bams and save as tmp file" << std::endl;
+            for (int i = bk; i < nb; ++i) {
+                res.emplace_back(pool.enqueue(bt_r, std::cref(bams), std::cref(pv), std::cref(refseq), std::cref(opt::region), std::cref(opt::output), nb, bc, i, rg_s, thread));
+            }
+            for (auto && r: res) {
+                r.get();
+            }
+            res.clear();
+        }
+    } else {
         BaseVar::ThreadPool pool(thread);
         std::vector<std::future<void>> res;
         std::cerr << "begin to read bams and save as tmp file" << std::endl;
@@ -225,10 +246,10 @@ void runBaseType(int argc, char **argv)
             r.get();
         }
         res.clear();
-        if (opt::load) exit(EXIT_SUCCESS);
     }
     time_t tim1 = time(0);
     std::cout << "basetype loading done -- " << ctime(&tim1);
+    if (opt::load) exit(EXIT_SUCCESS);
     // begin to call basetype
     std::vector<std::thread> workers;
     for (int i = 0; i < thread; ++i) {
@@ -450,6 +471,7 @@ void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const Strin
     allele_mv.reserve(size);
     for (; itb != itb2; ++itb) {
         auto bam = *itb;
+        try {
         BamProcess reader(opt::mapq);
         if (!(++count % 100)) std::cerr << "reading number " << count << " bam -- " << fout << ".tmp.batch." << ib << std::endl;
         if (!reader.Open(bam)) {
@@ -463,6 +485,10 @@ void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const Strin
         names += reader.sm + '\t';
         if (!reader.Close()) {
             std::cerr << "Warning: could not close file " << bam << std::endl;
+        }
+        } catch (std::out_of_range e) {
+            std::cout <<  bam << std::endl;
+            exit(EXIT_FAILURE);
         }
     }
     names += "\n";    // we keep '\t' ahead of '\n' in order to connect different batches' names directly

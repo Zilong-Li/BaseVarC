@@ -39,6 +39,8 @@ struct AlleleInfo
 typedef std::vector<AlleleInfo> AlleleInfoVector;
 typedef std::unordered_map<int32_t, AlleleInfo> PosAlleleMap;
 
+static const std::unordered_map<char, int8_t> BASEM{ {'A', 0},{'C', 1},{'G', 2},{'T', 3} };
+
 class BamProcess: public SeqLib::BamReader
 {
  public:
@@ -52,22 +54,20 @@ class BamProcess: public SeqLib::BamReader
 
     void FindSnpAtPos(const std::string& rg, const PosInfoVector& pv);
 
-    void writeCvg(){}
-
     std::string sm;
     std::vector<char> snps;
     PosAlleleMap allele_m;  // allele_m may be uninitialized.
 
  private:
+
     const uint8_t mapq;
+
+    int GetOffset(const SeqLib::BamRecord& r, const uint32_t pos) const;
 
     char GetSnpCode(const SeqLib::BamRecord& r, const PosInfo& s) const;
 
     void GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, AlleleInfo& ale) const;
 
-    int GetOffset(const SeqLib::BamRecord& r, const uint32_t pos) const;
-
-    std::unordered_map<char, int8_t> base_m{ {'A', 0},{'C', 1},{'G', 2},{'T', 3},{'N', 4} };
 };
 
 

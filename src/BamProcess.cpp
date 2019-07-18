@@ -222,7 +222,11 @@ void BamProcess::GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, Allel
     int offset = GetOffset(r, pos);
     std::string seq = r.Sequence();
     std::string qualities = r.Qualities();
-    ale.base = base_m.at(seq[offset]);
+    if (BASEM.count(seq[offset])) {
+        ale.base = BASEM.at(seq[offset]);
+    } else {
+        ale.base = 4;
+    }
     ale.qual = qualities[offset] - 33;
     ale.mapq = r.MapQuality();
     ale.rpr = offset + 1;
