@@ -260,14 +260,15 @@ void runBaseType(int argc, char **argv)
     String cvgout = opt::output + ".cvg.gz", subcvg;
     BGZF* fov = bgzf_open(vcfout.c_str(), "w");
     BGZF* foc = bgzf_open(cvgout.c_str(), "w");
+    BGZF* fiv = NULL; BGZF* fic = NULL;
     kstring_t ks = {0, 0, NULL};
     for (int i = 0; i < thread; ++i) {
         auto & t = workers[i];
         if (t.joinable()) t.join();
         subvcf = fmt::format("{}.{}.vcf.gz", opt::output, i);
         subcvg = fmt::format("{}.{}.cvg.gz", opt::output, i);
-        BGZF* fiv = bgzf_open(subvcf.c_str(), "r");
-        BGZF* fic = bgzf_open(subcvg.c_str(), "r");
+        fiv = bgzf_open(subvcf.c_str(), "r");
+        fic = bgzf_open(subcvg.c_str(), "r");
         while (bgzf_getline(fiv, '\n', &ks) >= 0) {
             tmp = (String)ks.s + '\n';
             if (bgzf_write(fov, tmp.c_str(), tmp.length()) != tmp.length()) {
@@ -282,18 +283,12 @@ void runBaseType(int argc, char **argv)
                 exit(EXIT_FAILURE);
             }
         }
+        std::remove(subvcf.c_str());
+        std::remove(subcvg.c_str());
     }
     std::cout << "merge subfiles done -- " << std::endl;
     if (bgzf_close(fov) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
     if (bgzf_close(foc) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
-    if (!opt::keep_tmp) {
-        for (int i = 0; i < thread; ++i) {
-            subvcf = fmt::format("{}.{}.vcf.gz", opt::output, i);
-            subcvg = fmt::format("{}.{}.cvg.gz", opt::output, i);
-            std::remove(subvcf.c_str());
-            std::remove(subcvg.c_str());
-        }
-    }
 
     // done
     time_t tim2 = time(0);
