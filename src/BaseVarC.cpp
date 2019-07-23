@@ -205,18 +205,22 @@ void runBaseType(int argc, char **argv)
     // begin to read bams
     String tmp;
     int thread = opt::thread;
+    for (int i = 0; i < thread; ++i) {
+        tmp = fmt::format("mkdir -p {}.tmp.thread.{}", opt::output, i);
+        if (!std::system(tmp.c_str())) continue;
+        else { std::cerr << "Error: couldn't mkdir " << std::endl; exit(EXIT_FAILURE);}
+    }
     std::vector<StringV> ftmp_vv(thread);
     int bc = opt::batch;
     int ngz = 0, nb = 1 + (N - 1) / bc;    // ceiling
     int bk = nb - 1;
-    BGZF* fp = NULL;
     for (int j = 0; j < nb; ++j) {
         int k = 0;
         for (int i = 0; i < thread; ++i) {
-            tmp = fmt::format("{}.tmp.batch.{}.window.{}", opt::output, j, i);
+            tmp = fmt::format("{}.tmp.thread.{}/batch.{}", opt::output, i, j);
             ftmp_vv[i].push_back(tmp);
             if (bgzf_is_bgzf(tmp.c_str())) {
-                fp = bgzf_open(tmp.c_str(), "r");
+                BGZF* fp = bgzf_open(tmp.c_str(), "r");
                 if (bgzf_check_EOF(fp) == 1) { k +=1; ngz += 1; }
             }
         }
@@ -289,6 +293,10 @@ void runBaseType(int argc, char **argv)
     std::cout << "merge subfiles done -- " << std::endl;
     if (bgzf_close(fov) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
     if (bgzf_close(foc) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
+    for (int i = 0; i < thread; ++i) {
+        tmp = fmt::format("rm -rf {}.tmp.thread.{}", opt::output, i);
+        std::system(tmp.c_str());
+    }
 
     // done
     time_t tim2 = time(0);
@@ -492,7 +500,7 @@ void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const Strin
     std::vector<BGZF*> fpv;
     BGZF* fp;
     for (int i = 0; i < thread; ++i) {
-        fw = fmt::format("{}.tmp.batch.{}.window.{}", fout, ib, i);
+        fw = fmt::format("{}.tmp.thread.{}/batch.{}", fout, i, ib);
         fp = bgzf_open(fw.c_str(), "w");
         if (bgzf_write(fp, names.c_str(), names.length()) != names.length()) {
             std::cerr << "fail to write - exit" << std::endl;
