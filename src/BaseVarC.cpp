@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <ctime>
+#include <unistd.h>
 
 #include "htslib/bgzf.h"
 #include "RefReader.h"
@@ -290,12 +291,13 @@ void runBaseType(int argc, char **argv)
         std::remove(subvcf.c_str());
         std::remove(subcvg.c_str());
     }
-    std::cout << "merge subfiles done -- " << std::endl;
+    std::cout << "merge subfiles done" << std::endl;
     if (bgzf_close(fov) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
     if (bgzf_close(foc) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
     for (int i = 0; i < thread; ++i) {
-        tmp = fmt::format("rm -rf {}.tmp.thread.{}", opt::output, i);
-        std::system(tmp.c_str());
+        tmp = fmt::format("{}.tmp.thread.{}", opt::output, i);
+        // for unix-system;
+        rmdir(tmp.c_str());
     }
 
     // done
