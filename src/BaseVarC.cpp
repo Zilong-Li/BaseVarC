@@ -373,7 +373,7 @@ void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const Str
             headvcf += "##contig=<ID=" + contig + ",length=" + len + ">\n";
         }
     }
-    headvcf += "#reference=file://" + opt::reference + "\n";
+    headvcf += "##reference=file://" + opt::reference + "\n";
     headvcf += "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" + sams + "\n";
     headcvg += "\n";
     // output header
