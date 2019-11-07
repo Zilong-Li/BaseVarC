@@ -199,9 +199,12 @@ void runBaseType(int argc, char **argv)
     int32_t rg_s, rg_e;
     std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(opt::region);
     IntV pv;
+    String acgt = "ACGT";
     for (size_t i = 0; i < refseq.length(); ++i) {
-        if (refseq[i] == 'N') continue;
-        pv.push_back(i + rg_s);       // 1-based
+        // skip non-acgt character
+        if (acgt.find(refseq[i]) != std::string::npos) {
+            pv.push_back(i + rg_s);       // 1-based
+        }
     }
     // begin to read bams
     String tmp;

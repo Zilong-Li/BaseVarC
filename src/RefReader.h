@@ -25,8 +25,8 @@ std::string RefReader::GetTargetBase(const std::string& rg, const std::string& f
         exit(EXIT_FAILURE);
     }
     seq = QueryRegion(chr, rg_s - 1, rg_e - 1);    // make 0-based
-    for (auto & i: seq) {
-        if (i >= 65 && i <= 90) continue;
+    for (auto & i: seq) {    // may contain '-' character
+        if ((i >= 65 && i <= 90) || i == '-') continue;
         i = i ^ 0x20;
     }
     return seq;
