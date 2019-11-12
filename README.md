@@ -31,8 +31,8 @@ sh test.sh
 RAM, run time and I/O all rest squarely on three parameters: `--region`, `--thread` and `--batch`. Depending on your situation, you can customize these parameters for exploiting your HPC servers.
 
 - `--batch` : BaseVarC converts reads from BAM files into an internal temp format. This parameter control how many samples will be bundled as a batch. RAM is linear with this. Larger number means more RAM but less file pointers(I/O).
-- `--region`: The longer of genomic region is given, the more RAM is used. Be aware that reading BAM files repeatedly is overhead. So you should split the chromosome into long region as possible as you can.
-- `--thread`: The number of threads to use. RAM and I/O are linear with threads. The more threads is given, the faster BaseVarC is.
+- `--region`: The longer the genomic region is given, the more RAM is used. Be aware that reading BAM files repeatedly is overhead. So you should split the chromosome into long region as possible as you can.
+- `--thread`: The number of threads to use. RAM and I/O are linear with threads. The more threads are given, the faster BaseVarC is.
 
 ## License
 
