@@ -1,4 +1,4 @@
-BaseVarC - Fast Variants Calling From Low-Pass (<1.0x) WGS Data
+BaseVarC - SNPs Calling From Low-Pass (<1.0x) WGS Data
 ===============================================================
 **__Current Version: 1.0.0__**
 Release date: November 11, 2019
@@ -36,7 +36,7 @@ RAM, run time and I/O all rest squarely on three parameters: `--region`, `--thre
 
 ## License
 
-BaseVarC and the code in this repo is available under a GPL3 license. For more information please see the [LISENCE](LISENCE)
+BaseVarC and the code in this repo is available under a GPL3 license. For more information please see the [LICENSE](LICENSE)
 
 ## Citation
 
