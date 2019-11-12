@@ -15,25 +15,27 @@
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
+#define AUTHOR "Zilong Li"
+#define EMAIL "[zimusen94@gmail.com]"
+
 static const char* BASEVARC_USAGE_MESSAGE = 
-"Program: BaseVarC -- A C Version of BaseVar\n"
-"Contact: Zilong Li [lizilong@bgi.com]\n"
+"Program: BaseVarC -- C++ Version of BaseVar\n"
+"Contact: " AUTHOR " " EMAIL "\n"
 "Usage  : BaseVarC <command> [options]\n\n"
 "Commands:\n"
 "           basetype       Variants Caller\n"
 "           popmatrix      Create population matrix\n" 
-"           concat         Concat popmatrix\n" 
-"           merge          Merge vcf/cvg files\n";
+"           concat         Concat popmatrix\n";
 
 static const char* BASETYPE_MESSAGE = 
 "Program: BaseVarC basetype\n"
-"Contact: Zilong Li [lizilong@bgi.com]\n"
+"Contact: " AUTHOR " " EMAIL "\n"
 "Usage  : BaseVarC basetype [options]\n\n"
 "Commands:\n"
 "  --input,      -i        BAM/CRAM file list, one file per row\n"
 "  --output,     -o        Output file prefix\n"
 "  --reference,  -r        Reference file\n"
-"  --region,     -s        Samtools-like region\n"
+"  --region,     -s        Samtools-like region <chr:start-end>\n"
 "  --group,      -g        Population group information <SampleID Group>\n"
 "  --mapq,       -q <INT>  Mapping quality >= INT [10]\n"
 "  --thread,     -t <INT>  Number of threads\n"
@@ -46,7 +48,7 @@ static const char* BASETYPE_MESSAGE =
 
 static const char* POPMATRIX_MESSAGE = 
 "Program: BaseVarC popmatrix\n"
-"Contact: Zilong Li [lizilong@bgi.com]\n"
+"Contact: " AUTHOR " " EMAIL "\n"
 "Usage  : BaseVarC popmatrix [options]\n\n"
 "Commands:\n"
 "  --input,      -i        BAM/CRAM files list, one file per row.\n"
@@ -56,8 +58,8 @@ static const char* POPMATRIX_MESSAGE =
 "  --verbose,    -v        Set verbose output\n";
 
 static const char* CONCAT_MESSAGE =
-"Program: BaseVarC popmatrix\n"
-"Contact: Zilong Li [lizilong@bgi.com]\n"
+"Program: BaseVarC concat\n"
+"Contact: " AUTHOR " " EMAIL "\n"
 "Usage  : BaseVarC concat [options]\n\n"
 "Commands:\n"
 "  --input,      -i       List of matrix files for concat, one file per row.\n"
