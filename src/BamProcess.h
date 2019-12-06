@@ -68,6 +68,8 @@ class BamProcess: public SeqLib::BamReader
 
     void GetAllele(const SeqLib::BamRecord& r, const uint32_t pos, AlleleInfo& ale) const;
 
+    bool GetBRV(const std::string& rg, SeqLib::BamRecordVector& rv);
+
 };
 
 

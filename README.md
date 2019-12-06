@@ -3,7 +3,7 @@ BaseVarC - SNPs Calling From Low-Pass (<1.0x) WGS Data
 **__Current Version: 1.0.0__**
 Release date: November 11, 2019
 
-BaseVarC is implemented in C++, aiming at speeding up variants calling from large-scale population, and was used in the [CMDB](https://db.cngb.org/cmdb/) project for calling variants from one million samples
+BaseVarC was implemented in C++, aiming at speeding up variants calling from large-scale population, and was used in the [CMDB](https://db.cngb.org/cmdb/) project for calling variants from one million samples
 
 
 ## Installation

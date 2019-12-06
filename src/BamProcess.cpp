@@ -1,6 +1,6 @@
 #include "BamProcess.h"
 
-bool BamProcess::FindSnpAtPos(int32_t rg_s, const std::string& refseq, const std::string& rg, const std::vector<int32_t>& pv)
+bool BamProcess::GetBRV(const std::string& rg, SeqLib::BamRecordVector& rv)
 {
     // check if the BAM is sorted
     std::string hh = Header().AsString(); //std::string(header()->text)
@@ -35,11 +35,19 @@ bool BamProcess::FindSnpAtPos(int32_t rg_s, const std::string& refseq, const std
     }
     SeqLib::BamRecord r;
     // filter reads here
-    SeqLib::BamRecordVector rv;
     while (GetNextRecord(r)) {
         if (r.MapQuality() < mapq) continue;
         rv.push_back(r);
     }
+
+    return true;
+}
+
+bool BamProcess::FindSnpAtPos(int32_t rg_s, const std::string& refseq, const std::string& rg, const std::vector<int32_t>& pv)
+{
+    SeqLib::BamRecord r;
+    SeqLib::BamRecordVector rv;
+    if (!GetBRV(rg, rv)) return false;
     // check again;
     if (rv.empty()) return false;
  // sk: the index of the CIGAR operator.
