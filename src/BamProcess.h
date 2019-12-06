@@ -52,10 +52,10 @@ class BamProcess: public SeqLib::BamReader
 
     bool FindSnpAtPos(int32_t rg_s, const std::string& refseq, const std::string& rg, const std::vector<int32_t>& pv);
 
-    void FindSnpAtPos(const std::string& rg, const PosInfoVector& pv);
+    std::string FetchAlleleType(int32_t rg_s, const std::string& refseq, const std::string& rg, const PosInfoVector& pv);
 
     std::string sm;
-    std::vector<char> snps;
+
     PosAlleleMap allele_m;  // allele_m may be uninitialized.
 
  private:

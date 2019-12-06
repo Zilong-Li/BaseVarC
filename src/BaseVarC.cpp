@@ -43,7 +43,7 @@ static const char* BASETYPE_MESSAGE =
 "  --maf,                  Minimum allele count frequency [min(0.001, 100/N, maf)]\n"
 "  --load,                 Load data only\n"
 "  --rerun,                Read previous loaded data and rerun\n"
-"  --keep_tmp              Don't remove tmp files when basetype finished\n"
+"  --keep_tmp,             Don't remove tmp files when basetype finished\n"
 "  --verbose,    -v        Set verbose output\n";
 
 static const char* POPMATRIX_MESSAGE = 
@@ -52,10 +52,10 @@ static const char* POPMATRIX_MESSAGE =
 "Usage  : BaseVarC popmatrix [options]\n\n"
 "Commands:\n"
 "  --input,      -i        BAM/CRAM files list, one file per row.\n"
-"  --posfile,    -p        Position file <CHRID POS REF ALT>\n"
 "  --output,     -o        Output filename prefix(.mat.gz will be added auto)\n"
-"  --mapq,       -q <INT>  Mapping quality >= INT [10]\n"
-"  --verbose,    -v        Set verbose output\n";
+"  --posfile,    -p        Position file <CHRID POS REF ALT>\n"
+"  --reference,  -r        Reference file\n"
+"  --mapq,       -q <INT>  Mapping quality >= INT [10]\n";
 
 static const char* CONCAT_MESSAGE =
 "Program: BaseVarC concat\n"
@@ -674,6 +674,10 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
 void runPopMatrix (int argc, char **argv)
 {
     parseOptions(argc, argv, POPMATRIX_MESSAGE);
+    if (opt::reference.empty() || opt::posfile.empty()) {
+        std::cerr << POPMATRIX_MESSAGE;
+        exit(EXIT_FAILURE);
+    }
     std::cerr << "popmatrix start" << std::endl;
     clock_t ctb = clock();
     std::ifstream ibam(opt::input);
@@ -698,6 +702,11 @@ void runPopMatrix (int argc, char **argv)
     }
     // ready for run
     String rg = pv.front() + pv.back();
+    int32_t rg_s, rg_e;
+    String chr;
+    std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(rg);
+    RefReader fa;
+    String refseq = fa.GetTargetBase(rg, opt::reference);
     int32_t count = 0;
     for (int32_t i = 0; i < N; i++) {
         BamProcess reader(opt::mapq);
@@ -706,8 +715,7 @@ void runPopMatrix (int argc, char **argv)
             std::cerr << "ERROR: could not open file " << bams[i] << std::endl;
             exit(EXIT_FAILURE);
         }
-        reader.FindSnpAtPos(rg, pv);
-        String out(reader.snps.begin(), reader.snps.end());
+        String out = reader.FetchAlleleType(rg_s, refseq, rg, pv);
         out += "\n";
         if (bgzf_write(fp, out.c_str(), out.length()) != out.length()) {
             std::cerr << "fail to write - exit" << std::endl;
