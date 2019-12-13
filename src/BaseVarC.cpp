@@ -52,8 +52,8 @@ static const char* POPMATRIX_MESSAGE =
 "Usage  : BaseVarC popmatrix [options]\n\n"
 "Commands:\n"
 "  --input,      -i        BAM/CRAM files list, one file per row.\n"
-"  --output,     -o        Output filename prefix(.mat.gz will be added auto)\n"
-"  --posfile,    -p        Position file <CHRID POS REF ALT>\n"
+"  --output,     -o        Output file path\n"
+"  --posfile,    -p        Position file without header <CHR POS REF ALT>\n"
 "  --reference,  -r        Reference file\n"
 "  --mapq,       -q <INT>  Mapping quality >= INT [10]\n";
 
@@ -117,7 +117,7 @@ namespace opt {
     static bool rerun   = false;
     static bool load    = false;
     static bool keep_tmp= false;
-    static uint8_t mapq = 10;
+    static int mapq = 10;
     static int thread = 1;
     static int batch  = 10;
     static double maf = 0.001;

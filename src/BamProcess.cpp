@@ -100,10 +100,11 @@ std::string BamProcess::FetchAlleleType(int32_t rg_s, const std::string& refseq,
     snps.reserve(pv.size());
 
     if (!GetBRV(rg, rv)) {
-        for (size_t i = 0; i < pv.size(); ++i) {
-            snps.push_back('.');
-        }
+
+        for (size_t i = 0; i < pv.size(); ++i) { snps.push_back('.'); }
+
     } else {
+
         size_t i = 0, j = 0, k = 0, nc, sk;
         int32_t sx, sy, indel, pos;
         bool eof = false, next = false, is_indel = false, is_del = false, is_refskip = false;
