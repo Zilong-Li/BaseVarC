@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-# AC_PREREQ(2.59) ## specificy version of autoconf
+AC_PREREQ(2.59) ## specificy version of autoconf
 AC_INIT(BaseVarC, 1.0.0, zimusen94@gmail.com)
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR([src/BaseVarC.cpp])
@@ -30,11 +30,11 @@ if test "$enable_development"; then
 fi
 
 # Set compiler flags.
-AC_SUBST(AM_CXXFLAGS, "-std=c++11 -Wall -Wextra $fail_on_warning -Wno-unknown-pragmas")
+AC_SUBST(AM_CXXFLAGS, "-std=c++11 -g -O2 -Wall -Wextra $fail_on_warning -Wno-unknown-pragmas")
 ##AC_SUBST(CXXFLAGS, "$CXXFLAGS")
 ##AC_SUBST(CFLAGS, "$CFLAGS")
-## pthread required for htslib to link
-AC_SUBST(LDFLAGS, "$LDFLAGS -pthread")
+##pthread required for htslib to link
+##AC_SUBST(LDFLAGS, "$LDFLAGS -pthread")
 ##AC_SUBST(LIBS, "$LIBS")
 
 AC_CONFIG_FILES([Makefile

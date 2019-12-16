@@ -24,6 +24,7 @@ std::string RefReader::GetTargetBase(const std::string& rg, const std::string& f
         std::cerr << "reference must be index with samtools faidx" << std::endl;
         exit(EXIT_FAILURE);
     }
+    // SeqLib will throw exception if something goes wrong.
     seq = QueryRegion(chr, rg_s - 1, rg_e - 1);    // make 0-based
     for (auto & i: seq) {    // may contain '-' character
         if ((i >= 65 && i <= 90) || i == '-') continue;

@@ -195,14 +195,16 @@ void runBaseType(int argc, char **argv)
         std::cerr << "Error: reference must be specified" << std::endl;
         exit(EXIT_FAILURE);
     }
-    RefReader fa;
-    String refseq = fa.GetTargetBase(opt::region, opt::reference);
     String chr;
-    int32_t rg_s, rg_e;
+    int32_t rg_s, rg_e, buf = 1000;
     std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(opt::region);
+    RefReader fa;
+    // expand right region for scanning indels
+    String rg_t = fmt::format("{}:{}-{}", chr, rg_s, rg_e + buf);
+    String refseq = fa.GetTargetBase(rg_t, opt::reference);
     IntV pv;
     String acgt = "ACGT";
-    for (size_t i = 0; i < refseq.length(); ++i) {
+    for (size_t i = 0; i < refseq.length() - buf; ++i) {
         // skip non-acgt character
         if (acgt.find(refseq[i]) != std::string::npos) {
             pv.push_back(i + rg_s);       // 1-based
@@ -706,7 +708,9 @@ void runPopMatrix (int argc, char **argv)
     String chr;
     std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(rg);
     RefReader fa;
-    String refseq = fa.GetTargetBase(rg, opt::reference);
+    // expand right region for scanning indels
+    String rg_t = fmt::format("{}:{}-{}", chr, rg_s, rg_e + 1000);
+    String refseq = fa.GetTargetBase(rg_t, opt::reference);
     int32_t count = 0;
     for (int32_t i = 0; i < N; i++) {
         BamProcess reader(opt::mapq);
