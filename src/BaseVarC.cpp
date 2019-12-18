@@ -22,14 +22,14 @@ static const char* BASEVARC_USAGE_MESSAGE =
 "Contact: " AUTHOR " " EMAIL "\n"
 "Usage  : BaseVarC <command> [options]\n\n"
 "Commands:\n"
-"           basetype       Variants Caller\n"
-"           popmatrix      Create population matrix\n" 
-"           concat         Concat popmatrix\n";
+"         basetype       Variants Caller\n"
+"         popmatrix      Create population matrix\n" 
+"         concat         Concat popmatrix\n";
 
 static const char* BASETYPE_MESSAGE = 
 "Commands: BaseVarC basetype\n"
-"Usage  : BaseVarC basetype [options]\n\n"
-"Options:\n"
+"Usage   : BaseVarC basetype [options]\n\n"
+"Options :\n"
 "  --input,      -i        BAM/CRAM file list, one file per row\n"
 "  --output,     -o        Output file prefix\n"
 "  --reference,  -r        Reference file\n"
@@ -46,8 +46,8 @@ static const char* BASETYPE_MESSAGE =
 
 static const char* POPMATRIX_MESSAGE = 
 "Commands: BaseVarC popmatrix\n"
-"Usage  : BaseVarC popmatrix [options]\n\n"
-"Options:\n"
+"Usage   : BaseVarC popmatrix [options]\n\n"
+"Options :\n"
 "  --input,      -i        BAM/CRAM files list, one file per row.\n"
 "  --output,     -o        Output file path\n"
 "  --posfile,    -p        Position file without header <CHR POS REF ALT>\n"
@@ -56,8 +56,8 @@ static const char* POPMATRIX_MESSAGE =
 
 static const char* CONCAT_MESSAGE =
 "Commands: BaseVarC concat\n"
-"Usage  : BaseVarC concat [options]\n\n"
-"Options:\n"
+"Usage   : BaseVarC concat [options]\n\n"
+"Options :\n"
 "  --input,      -i       List of matrix files for concat, one file per row.\n"
 "  --output,     -o       Output filename prefix(.gz will be added auto)\n";
 
