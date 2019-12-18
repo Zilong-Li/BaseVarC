@@ -17,6 +17,57 @@ make
 
 If everything goes well, you can find BaseVarC program in the `src` directory.
 
+## Command-Line
+
+```
+BaseVarC
+Contact: Zilong Li [zimusen94@gmail.com]
+Usage  : BaseVarC <command> [options]
+
+Commands:
+           basetype       Variants Caller
+           popmatrix      Create population matrix
+           concat         Concat popmatrix
+```
+
+### Variants Calling
+
+```
+Commands: BaseVarC basetype
+Usage  : BaseVarC basetype [options]
+
+Options:
+  --input,      -i        BAM/CRAM file list, one file per row
+  --output,     -o        Output file prefix
+  --reference,  -r        Reference file
+  --region,     -s        Samtools-like region <chr:start-end>
+  --group,      -g        Population group information <SampleID Group>
+  --mapq,       -q <INT>  Mapping quality >= INT [10]
+  --thread,     -t <INT>  Number of threads
+  --batch,      -b <INT>  Number of samples each batch
+  --maf,                  Minimum allele count frequency [min(0.001, 100/N, maf)]
+  --load,                 Load data only
+  --rerun,                Read previous loaded data and rerun
+  --keep_tmp,             Don't remove tmp files when basetype finished
+  --verbose,    -v        Set verbose output
+
+```
+
+### Create Popmatrix for [EMU](https://github.com/Rosemeis/emu)
+
+```
+Commands: BaseVarC popmatrix
+Usage  : BaseVarC popmatrix [options]
+
+Options:
+  --input,      -i        BAM/CRAM files list, one file per row.
+  --output,     -o        Output file path
+  --posfile,    -p        Position file without header <CHR POS REF ALT>
+  --reference,  -r        Reference file
+  --mapq,       -q <INT>  Mapping quality >= INT [10]
+```
+
+
 ## Testing
 
 In the tests directory, there is a script which contains a example using test data.

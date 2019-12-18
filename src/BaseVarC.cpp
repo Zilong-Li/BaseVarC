@@ -19,7 +19,6 @@
 #define EMAIL "[zimusen94@gmail.com]"
 
 static const char* BASEVARC_USAGE_MESSAGE = 
-"Program: BaseVarC -- C++ Version of BaseVar\n"
 "Contact: " AUTHOR " " EMAIL "\n"
 "Usage  : BaseVarC <command> [options]\n\n"
 "Commands:\n"
@@ -28,10 +27,9 @@ static const char* BASEVARC_USAGE_MESSAGE =
 "           concat         Concat popmatrix\n";
 
 static const char* BASETYPE_MESSAGE = 
-"Program: BaseVarC basetype\n"
-"Contact: " AUTHOR " " EMAIL "\n"
+"Commands: BaseVarC basetype\n"
 "Usage  : BaseVarC basetype [options]\n\n"
-"Commands:\n"
+"Options:\n"
 "  --input,      -i        BAM/CRAM file list, one file per row\n"
 "  --output,     -o        Output file prefix\n"
 "  --reference,  -r        Reference file\n"
@@ -47,10 +45,9 @@ static const char* BASETYPE_MESSAGE =
 "  --verbose,    -v        Set verbose output\n";
 
 static const char* POPMATRIX_MESSAGE = 
-"Program: BaseVarC popmatrix\n"
-"Contact: " AUTHOR " " EMAIL "\n"
+"Commands: BaseVarC popmatrix\n"
 "Usage  : BaseVarC popmatrix [options]\n\n"
-"Commands:\n"
+"Options:\n"
 "  --input,      -i        BAM/CRAM files list, one file per row.\n"
 "  --output,     -o        Output file path\n"
 "  --posfile,    -p        Position file without header <CHR POS REF ALT>\n"
@@ -58,10 +55,9 @@ static const char* POPMATRIX_MESSAGE =
 "  --mapq,       -q <INT>  Mapping quality >= INT [10]\n";
 
 static const char* CONCAT_MESSAGE =
-"Program: BaseVarC concat\n"
-"Contact: " AUTHOR " " EMAIL "\n"
+"Commands: BaseVarC concat\n"
 "Usage  : BaseVarC concat [options]\n\n"
-"Commands:\n"
+"Options:\n"
 "  --input,      -i       List of matrix files for concat, one file per row.\n"
 "  --output,     -o       Output filename prefix(.gz will be added auto)\n";
 
@@ -186,7 +182,7 @@ void runBaseType(int argc, char **argv)
     StringV bams(std::istream_iterator<BaseVar::Line>{ibam},
     	         std::istream_iterator<BaseVar::Line>{});
     const int32_t N = bams.size();
-    // fetch ref bases;
+    // todo: check if region is valid !!!!
     if (opt::region.empty()) {
         std::cerr << "Error: region must be specified" << std::endl;
         exit(EXIT_FAILURE);
