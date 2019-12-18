@@ -30,19 +30,19 @@ static const char* BASETYPE_MESSAGE =
 "Commands: BaseVarC basetype\n"
 "Usage   : BaseVarC basetype [options]\n\n"
 "Options :\n"
-"  --input,      -i        BAM/CRAM file list, one file per row\n"
-"  --output,     -o        Output file prefix\n"
-"  --reference,  -r        Reference file\n"
-"  --region,     -s        Samtools-like region <chr:start-end>\n"
-"  --group,      -g        Population group information <SampleID Group>\n"
-"  --mapq,       -q <INT>  Mapping quality >= INT [10]\n"
-"  --thread,     -t <INT>  Number of threads\n"
-"  --batch,      -b <INT>  Number of samples each batch\n"
-"  --maf,                  Minimum allele count frequency [min(0.001, 100/N, maf)]\n"
-"  --load,                 Load data only\n"
-"  --rerun,                Read previous loaded data and rerun\n"
-"  --keep_tmp,             Don't remove tmp files when basetype finished\n"
-"  --verbose,    -v        Set verbose output\n";
+"  --input,      -i         BAM/CRAM file list, one file per row\n"
+"  --output,     -o         Output file prefix\n"
+"  --reference,  -r         Reference file\n"
+"  --region,     -s         Samtools-like region <chr:start-end>\n"
+"  --group,      -g         Population group information <SampleID Group>\n"
+"  --mapq,       -q <INT>   Mapping quality >= INT [10]\n"
+"  --thread,     -t <INT>   Number of threads\n"
+"  --batch,      -b <INT>   Number of samples each batch\n"
+"  --maf,        -a <FLOAT> Minimum allele count frequency [min(0.001, 100/N, maf)]\n"
+"  --load,                  Load data only\n"
+"  --rerun,                 Read previous loaded data and rerun\n"
+"  --keep_tmp,              Don't remove tmp files when basetype finished\n"
+"  --verbose,    -v         Set verbose output\n";
 
 static const char* POPMATRIX_MESSAGE = 
 "Commands: BaseVarC popmatrix\n"
@@ -125,7 +125,7 @@ namespace opt {
     static std::string output;
 }
 
-static const char* shortopts = "hvi:r:p:s:o:q:t:b:g:";
+static const char* shortopts = "hva:i:r:p:s:o:q:t:b:g:";
 
 static const struct option longopts[] = {
   { "help",                    no_argument, NULL, 'h' },
@@ -133,7 +133,7 @@ static const struct option longopts[] = {
   { "keep_tmp",                no_argument, NULL,  6  },
   { "load",                    no_argument, NULL,  7  },
   { "rerun",                   no_argument, NULL,  8  },
-  { "maf",                     required_argument, NULL,  9  },
+  { "maf",                     required_argument, NULL, 'a' },
   { "input",                   required_argument, NULL, 'i' },
   { "reference",               required_argument, NULL, 'r' },
   { "posfile",                 required_argument, NULL, 'p' },
@@ -827,7 +827,7 @@ void parseOptions(int argc, char **argv, const char* msg)
         case 's': arg >> opt::region; break;
         case 'g': arg >> opt::group; break;
         case 'o': arg >> opt::output; break;
-        case  9 : arg >> opt::maf; break;
+        case 'a': arg >> opt::maf; break;
         case  8 : opt::rerun   = true; break;
         case  7 : opt::load    = true; break;
         case  6 : opt::keep_tmp= true; break;

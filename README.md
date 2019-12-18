@@ -37,20 +37,19 @@ Commands: BaseVarC basetype
 Usage   : BaseVarC basetype [options]
 
 Options :
-  --input,      -i        BAM/CRAM file list, one file per row
-  --output,     -o        Output file prefix
-  --reference,  -r        Reference file
-  --region,     -s        Samtools-like region <chr:start-end>
-  --group,      -g        Population group information <SampleID Group>
-  --mapq,       -q <INT>  Mapping quality >= INT [10]
-  --thread,     -t <INT>  Number of threads
-  --batch,      -b <INT>  Number of samples each batch
-  --maf,                  Minimum allele count frequency [min(0.001, 100/N, maf)]
-  --load,                 Load data only
-  --rerun,                Read previous loaded data and rerun
-  --keep_tmp,             Don't remove tmp files when basetype finished
-  --verbose,    -v        Set verbose output
-
+  --input,      -i         BAM/CRAM file list, one file per row
+  --output,     -o         Output file prefix
+  --reference,  -r         Reference file
+  --region,     -s         Samtools-like region <chr:start-end>
+  --group,      -g         Population group information <SampleID Group>
+  --mapq,       -q <INT>   Mapping quality >= INT [10]
+  --thread,     -t <INT>   Number of threads
+  --batch,      -b <INT>   Number of samples each batch
+  --maf,        -a <FLOAT> Minimum allele count frequency [min(0.001, 100/N, maf)]
+  --load,                  Load data only
+  --rerun,                 Read previous loaded data and rerun
+  --keep_tmp,              Don't remove tmp files when basetype finished
+  --verbose,    -v         Set verbose output
 ```
 
 ### Create Popmatrix for [EMU](https://github.com/Rosemeis/emu)
