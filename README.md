@@ -25,18 +25,18 @@ Contact: Zilong Li [zimusen94@gmail.com]
 Usage  : BaseVarC <command> [options]
 
 Commands:
-           basetype       Variants Caller
-           popmatrix      Create population matrix
-           concat         Concat popmatrix
+         basetype       Variants Caller
+         popmatrix      Create population matrix
+         concat         Concat popmatrix
 ```
 
 ### Variants Calling
 
 ```
 Commands: BaseVarC basetype
-Usage  : BaseVarC basetype [options]
+Usage   : BaseVarC basetype [options]
 
-Options:
+Options :
   --input,      -i        BAM/CRAM file list, one file per row
   --output,     -o        Output file prefix
   --reference,  -r        Reference file
@@ -57,9 +57,9 @@ Options:
 
 ```
 Commands: BaseVarC popmatrix
-Usage  : BaseVarC popmatrix [options]
+Usage   : BaseVarC popmatrix [options]
 
-Options:
+Options :
   --input,      -i        BAM/CRAM files list, one file per row.
   --output,     -o        Output file path
   --posfile,    -p        Position file without header <CHR POS REF ALT>
