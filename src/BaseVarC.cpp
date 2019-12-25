@@ -115,7 +115,7 @@ namespace opt {
     static bool keep_tmp= false;
     static int mapq = 10;
     static int thread = 1;
-    static int batch  = 10;
+    static int batch  = 10;    // be careful, need to check 
     static double maf = 0.001;
     static std::string input;
     static std::string reference;
@@ -310,6 +310,8 @@ void runBaseType(int argc, char **argv)
     double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
     std::cout << "basetype elapsed cpu secs : " << elapsed_secs << std::endl;
     std::cout << "basetype done" << std::endl;
+
+    return;
 }
 
 void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const String& chr, int32_t rg_s, int32_t N, int thread, int ithread)
@@ -463,6 +465,8 @@ void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const Str
             std::remove(f.c_str());
         }
     }
+
+    return;
 }
 
 void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const String& region, const String& fout, int nb, int bc, int ib, int32_t rg_s, int thread)
@@ -513,6 +517,7 @@ void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const Strin
         }
         fpv.push_back(fp);
     }
+
     String out;
     for (int i = 0, j = 0; i < psize; ++i) {
         auto p = pv[i];
@@ -533,9 +538,12 @@ void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const Strin
             exit(EXIT_FAILURE);
         }
     }
+
     for (auto & fp : fpv) {
         if (bgzf_close(fp) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
     }
+
+    return;
 }
 
 BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, const DepM& idx, int32_t N, const String& chr, int32_t rg_s, const String& refseq)
@@ -730,6 +738,8 @@ void runPopMatrix (int argc, char **argv)
     double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
     std::cout << "elapsed secs : " << elapsed_secs << std::endl;
     std::cerr << "popmatrix done" << std::endl;
+
+    return;
 }
 
 void runConcat(int argc, char **argv)
@@ -809,6 +819,8 @@ void runConcat(int argc, char **argv)
     double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
     std::cout << "elapsed secs : " << elapsed_secs << std::endl;
     std::cout << "concat done" << std::endl;
+
+    return;
 }
 
 void parseOptions(int argc, char **argv, const char* msg)
