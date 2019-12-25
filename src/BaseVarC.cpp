@@ -751,17 +751,17 @@ void runConcat(int argc, char **argv)
     std::ifstream ifm(fm);
     StringV fm_v(std::istream_iterator<BaseVar::Line>{ifm},
 	             std::istream_iterator<BaseVar::Line>{});
-    int32_t i, k, m, count, n = 0, mt = 0;
+    int32_t i, k, m, n = 0, mt = 0;
     int32_t nm = fm_v.size();
     BGZF* fp = NULL;
+    BGZF* fpo = bgzf_open(fo.c_str(), "w");
     kstring_t ks = {0, 0, NULL};
     String ss;
-    StringV Drg;
-    std::vector<StringV> D;
-    D.reserve(nm);
-    for (k = 0; k < nm ; ++k) {
-        std::cout << "reading file : " << fm_v[k] << std::endl;
-        fp = bgzf_open(fm_v[k].c_str(), "r");
+    // read head line and hold all file pointers
+    std::vector<BGZF*> fpv;
+    for (auto & fm : fm_v) {
+        fp = bgzf_open(fm.c_str(), "r");
+        fpv.push_back(fp);
         if (bgzf_getline(fp, '\n', &ks) >= 0) {
             ss = ks.s;
             StringV tokens;
@@ -777,44 +777,33 @@ void runConcat(int argc, char **argv)
                 mt += m;
             }
         }
-        count = 0;
-        Drg.reserve(n);
-        while (bgzf_getline(fp, '\n', &ks) >= 0) {
-            ++count;
-            Drg.push_back(ks.s);
-        }
-        if (count != n) {
-            std::cerr << "error: the number of samples dont match the header!" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-        D.push_back(Drg);
-        Drg.clear();
-        if (bgzf_close(fp) < 0) {
-            std::cerr << "warning: file cannot be closed!" << std::endl;
-        }
     }
-
-    fp = bgzf_open(fo.c_str(), "w");
+    // begin to concat and write to output
     ss = fmt::format("{}\t{}\n", n, mt);
-    if (bgzf_write(fp, ss.c_str(), ss.length()) != ss.length()) {
+    if (bgzf_write(fpo, ss.c_str(), ss.length()) != ss.length()) {
         std::cerr << "fail to write - exit" << std::endl;
         exit(EXIT_FAILURE);
     }
-    // fast concatenation consider using rope data structure
-    // @see https://brianbondy.com/blog/tagged/data-structure
-    for (i = 0; i < n; ++i){
+    for (i = 0; i < n ; ++i) {
+        if (i % 1000 == 0 && i != 0) std::cout << "reading the " << i << " samples" << std::endl;
         ss = "";
         ss.reserve(mt+1);
         for (k = 0; k < nm; ++k) {
-            ss += D[k][i];
+            if (bgzf_getline(fpv[k], '\n', &ks) >= 0) {
+                ss += (String)ks.s;
+            } else {
+                std::cerr << "error: empty line in " << i << "line of " << fm_v[k] << std::endl;
+                exit(EXIT_FAILURE);
+            }
         }
         ss += "\n";
-        if (bgzf_write(fp, ss.c_str(), ss.length()) != ss.length()) {
+        if (bgzf_write(fpo, ss.c_str(), ss.length()) != ss.length()) {
             std::cerr << "fail to write" << std::endl;
             exit(EXIT_FAILURE);
         }
     }
-    if (bgzf_close(fp) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
+
+    if (bgzf_close(fpo) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
     clock_t cte = clock();
     double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
     std::cout << "elapsed secs : " << elapsed_secs << std::endl;
