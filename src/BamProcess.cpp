@@ -178,7 +178,10 @@ std::string BamProcess::FetchAlleleType(int32_t rg_s, const std::string& refseq,
                         break;
                     } else if (j < rv.size() - 1) {
                         r = rv[++j];
-                        if (pos < r.Position() + 1 || pos > r.PositionEnd()) break;
+                        if (pos < r.Position() + 1 || pos > r.PositionEnd()) {
+                            snps.push_back('.');
+                            break;
+                        }
                     } else {
                         snps.push_back('.');
                         break;
