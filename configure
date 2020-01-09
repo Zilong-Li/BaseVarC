@@ -4941,12 +4941,13 @@ if test "$enable_development"; then
 fi
 
 # Set compiler flags.
-AM_CXXFLAGS="-std=c++11 -g -O2 -Wall -Wextra $fail_on_warning -Wno-unknown-pragmas"
+AM_CXXFLAGS="-std=c++11 -Wall -Wextra $fail_on_warning -Wno-unknown-pragmas"
 
 ##AC_SUBST(CXXFLAGS, "$CXXFLAGS")
 ##AC_SUBST(CFLAGS, "$CFLAGS")
 ##pthread required for htslib to link
-##AC_SUBST(LDFLAGS, "$LDFLAGS -pthread")
+LDFLAGS="$LDFLAGS -pthread"
+
 ##AC_SUBST(LIBS, "$LIBS")
 
 ac_config_files="$ac_config_files Makefile SeqLib/src/Makefile src/Makefile"
