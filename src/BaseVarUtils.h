@@ -34,7 +34,20 @@ std::vector<size_t> sortidx(const std::vector<T>& v) {
     return idx;
 }
 
+inline bool checkrg(const std::string& rg) {
+    size_t p;
+    if ((p = rg.find(":")) == std::string::npos) {
+        throw std::invalid_argument("region must be feed with samtools-like format, i.e. chr:start-end");
+    }
+    if ((p = rg.find("-")) == std::string::npos) {
+        throw std::invalid_argument("region must be feed with samtools-like format, i.e. chr:start-end");
+    }
+
+    return true;
+}
+
 inline std::tuple<std::string, int32_t, int32_t> splitrg(std::string rg) {
+    checkrg(rg);
     size_t p;
     std::string chr;
     int32_t s = 0, e = 0;
@@ -47,8 +60,10 @@ inline std::tuple<std::string, int32_t, int32_t> splitrg(std::string rg) {
         rg.erase(0, p + 1);
         e = std::stoi(rg) - 1;
     }
+
     return std::make_tuple(chr, s, e);
 }
+
 
 }
 

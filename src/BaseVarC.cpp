@@ -175,6 +175,10 @@ int main(int argc, char** argv)
 void runBaseType(int argc, char **argv)
 {
     parseOptions(argc, argv, BASETYPE_MESSAGE);
+    BaseVar::checkrg(opt::region);
+    if (opt::reference.empty()) {
+        throw std::invalid_argument("reference must be feed");
+    }
     time_t tim = time(0);
     clock_t ctb = clock();
     std::cout << "basetype start -- " << ctime(&tim);
@@ -182,15 +186,6 @@ void runBaseType(int argc, char **argv)
     StringV bams(std::istream_iterator<BaseVar::Line>{ibam},
     	         std::istream_iterator<BaseVar::Line>{});
     const int32_t N = bams.size();
-    // todo: check if region is valid !!!!
-    if (opt::region.empty()) {
-        std::cerr << "Error: region must be specified" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    if (opt::reference.empty()) {
-        std::cerr << "Error: reference must be specified" << std::endl;
-        exit(EXIT_FAILURE);
-    }
     String chr;
     int32_t rg_s, rg_e, buf = 1000;
     std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(opt::region);
