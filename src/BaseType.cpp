@@ -140,7 +140,7 @@ bool BaseType::LRT()
 
 String WriteVcf(const BaseType& bt, const String& chr, int32_t pos, int8_t ref_base, const AlleleInfoVector& aiv, const DepM& idx, InfoM& info, int32_t N)
 {
-    std::unordered_map<uint8_t, String> alt_gt;
+    robin_hood::unordered_map<uint8_t, String> alt_gt;
     String gt, samgt;
     for (size_t i = 0; i < bt.alt_bases.size(); ++i) {
         gt = fmt::format("./{}", i+1);

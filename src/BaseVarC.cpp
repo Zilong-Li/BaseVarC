@@ -14,6 +14,7 @@
 #include "ThreadPool.h"
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
+#include "robin_hood.h"
 
 #define AUTHOR "Zilong Li"
 #define EMAIL "[zimusen94@gmail.com]"
@@ -91,7 +92,7 @@ typedef std::vector<String> StringV;
 typedef std::vector<int32_t> IntV;
 typedef std::vector<PosAlleleMap> PosAlleleMapVec;
 typedef std::map<String, IntV> GroupIdx;
-typedef std::unordered_map<String, int> IndelMap;
+typedef robin_hood::unordered_map<String, int> IndelMap;
 
 struct BtRes
 {
@@ -337,7 +338,7 @@ void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const Str
     if (!opt::group.empty()) {
         std::ifstream ifg(opt::group);
         String id, grp;
-        std::unordered_map<String, String> popg_m;
+        robin_hood::unordered_map<String, String> popg_m;
         while (ifg >> id >> grp) {
             popg_m.insert({id, grp});
         }

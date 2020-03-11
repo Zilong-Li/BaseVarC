@@ -35,11 +35,10 @@ std::vector<size_t> sortidx(const std::vector<T>& v) {
 }
 
 inline bool checkrg(const std::string& rg) {
-    size_t p;
-    if ((p = rg.find(":")) == std::string::npos) {
+    if (rg.find(":") == std::string::npos) {
         throw std::invalid_argument("region must be feed with samtools-like format, i.e. chr:start-end");
     }
-    if ((p = rg.find("-")) == std::string::npos) {
+    if (rg.find("-") == std::string::npos) {
         throw std::invalid_argument("region must be feed with samtools-like format, i.e. chr:start-end");
     }
 

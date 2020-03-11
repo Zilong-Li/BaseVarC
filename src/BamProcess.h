@@ -3,6 +3,7 @@
 
 #include "SeqLib/BamReader.h"
 #include "BaseVarUtils.h"
+#include "robin_hood.h"
 
 struct PosInfo
 {
@@ -37,9 +38,9 @@ struct AlleleInfo
     std::string indel;
 };
 typedef std::vector<AlleleInfo> AlleleInfoVector;
-typedef std::unordered_map<int32_t, AlleleInfo> PosAlleleMap;
+typedef robin_hood::unordered_map<int32_t, AlleleInfo> PosAlleleMap;
 
-static const std::unordered_map<char, int8_t> BASEM{ {'A', 0},{'C', 1},{'G', 2},{'T', 3} };
+static const robin_hood::unordered_map<char, int8_t> BASEM{ {'A', 0},{'C', 1},{'G', 2},{'T', 3} };
 
 class BamProcess: public SeqLib::BamReader
 {

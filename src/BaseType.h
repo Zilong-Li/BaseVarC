@@ -4,6 +4,7 @@
 #include <algorithm>
 #include "Algorithm.h"
 #include "BamProcess.h"
+#include "robin_hood.h"
 
 #define LRT_THRESHOLD 24.0    // chi-pvalue of 10^-6
 #define MLN10TO10 -0.23025850929940458    // -log(10)/10
@@ -17,7 +18,7 @@ typedef std::vector<ProbV> FreqV;
 typedef std::vector<int8_t> BaseV;
 typedef std::vector<BaseV> CombV;
 typedef std::map<String, String> InfoM;
-typedef std::unordered_map<int32_t, int32_t> DepM;
+typedef robin_hood::unordered_map<int32_t, int32_t> DepM;
 static const int BASE[4] = {0, 1, 2, 3};
 static const char STRAND[2] = {'-', '+'};
 static const char BASE2CHAR[4] = {'A', 'C', 'G', 'T'};
@@ -70,7 +71,7 @@ class BaseType
     double depth_total;
     BaseV alt_bases;
     DepM depth;
-    std::unordered_map<int8_t, double> af_lrt;
+    robin_hood::unordered_map<int8_t, double> af_lrt;
 
  private:
     BaseV bases;
