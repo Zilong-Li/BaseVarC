@@ -206,9 +206,10 @@ void runBaseType(int argc, char **argv)
     String tmp;
     int thread = opt::thread;
     for (int i = 0; i < thread; ++i) {
+        // only for unix system
         tmp = fmt::format("mkdir -p {}.tmp.thread.{}", opt::output, i);
         if (!std::system(tmp.c_str())) continue;
-        else { std::cerr << "Error: couldn't mkdir " << std::endl; exit(EXIT_FAILURE);}
+        else { throw std::runtime_error("ERROR: fail to run mkdir");}
     }
     std::vector<StringV> ftmp_vv(thread);
     int bc = opt::batch;
@@ -223,6 +224,8 @@ void runBaseType(int argc, char **argv)
                 BGZF* fp = bgzf_open(tmp.c_str(), "r");
                 if (bgzf_compression(fp) == 2) {
                     if (bgzf_check_EOF(fp) == 1) { k +=1; ngz += 1; }
+                } else {
+                    std::cerr << "warning: " << tmp << " is not bgziped" << std::endl;
                 }
             }
         }
@@ -232,7 +235,7 @@ void runBaseType(int argc, char **argv)
         if (ngz != thread * nb) {
             BaseVarC::ThreadPool pool(thread);
             std::vector<std::future<void>> res;
-            std::cerr << "begin to read bams and save as tmp file" << std::endl;
+            std::cerr << "begin to extract reads from bam" << std::endl;
             for (int i = bk; i < nb; ++i) {
                 res.emplace_back(pool.enqueue(bt_r, std::cref(bams), std::cref(pv), std::cref(refseq), std::cref(opt::region), std::cref(opt::output), nb, bc, i, rg_s, thread));
             }
@@ -244,7 +247,7 @@ void runBaseType(int argc, char **argv)
     } else {
         BaseVarC::ThreadPool pool(thread);
         std::vector<std::future<void>> res;
-        std::cerr << "begin to read bams and save as tmp file" << std::endl;
+        std::cerr << "begin to extract reads from bam" << std::endl;
         for (int i = 0; i < nb; ++i) {
             res.emplace_back(pool.enqueue(bt_r, std::cref(bams), std::cref(pv), std::cref(refseq), std::cref(opt::region), std::cref(opt::output), nb, bc, i, rg_s, thread));
         }
@@ -278,15 +281,13 @@ void runBaseType(int argc, char **argv)
         while (bgzf_getline(fiv, '\n', &ks) >= 0) {
             tmp = (String)ks.s + '\n';
             if (bgzf_write(fov, tmp.c_str(), tmp.length()) != tmp.length()) {
-                std::cerr << "fail to write - exit" << std::endl;
-                exit(EXIT_FAILURE);
+                throw std::runtime_error("ERROR: fail to write");
             }
         }
         while (bgzf_getline(fic, '\n', &ks) >= 0) {
             tmp = (String)ks.s + '\n';
             if (bgzf_write(foc, tmp.c_str(), tmp.length()) != tmp.length()) {
-                std::cerr << "fail to write - exit" << std::endl;
-                exit(EXIT_FAILURE);
+                throw std::runtime_error("ERROR: fail to write");
             }
         }
         std::remove(subvcf.c_str());
@@ -382,12 +383,10 @@ void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const Str
     // output header
     if (ithread == 0) {
         if (bgzf_write(fpc, headcvg.c_str(), headcvg.length()) != headcvg.length()) {
-            std::cerr << "fail to write - exit" << std::endl;
-            exit(EXIT_FAILURE);
+            throw std::runtime_error("ERROR: fail to write");
         }
         if (bgzf_write(fpv, headvcf.c_str(), headvcf.length()) != headvcf.length()) {
-            std::cerr << "fail to write - exit" << std::endl;
-            exit(EXIT_FAILURE);
+            throw std::runtime_error("ERROR: fail to write");
         }
     }
     // begin to call basetype and output
@@ -443,12 +442,10 @@ void bt_s(const StringV& ftmp_v, const IntV& pv, const String& refseq, const Str
         if (!aiv.empty()) {
             auto btr = bt_f(p, popg_idx, aiv, idx, N, chr, rg_s, refseq);
             if (!btr.vcf.empty() && bgzf_write(fpv, btr.vcf.c_str(), btr.vcf.length()) != btr.vcf.length()) {
-                std::cerr << "fail to write - exit" << std::endl;
-                exit(EXIT_FAILURE);
+                throw std::runtime_error("ERROR: fail to write");
             }
             if (bgzf_write(fpc, btr.cvg.c_str(), btr.cvg.length()) != btr.cvg.length()) {
-                std::cerr << "fail to write - exit" << std::endl;
-                exit(EXIT_FAILURE);
+                throw std::runtime_error("ERROR: fail to write");
             }
             aiv.clear();
             idx.clear();
@@ -482,21 +479,20 @@ void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const Strin
     for (; itb != itb2; ++itb) {
         auto bam = *itb;
         try {
-        BamProcess reader(opt::mapq);
-        if (!(++count % 100)) std::cerr << "reading number " << count << " bam -- " << fout << ".tmp.batch." << ib << std::endl;
-        if (!reader.Open(bam)) {
-            std::cerr << "ERROR: could not open file " << bam << std::endl;
-            exit(EXIT_FAILURE);
-        }
-        if (!reader.FindSnpAtPos(rg_s, refseq, region, pv)) {
-            std::cerr << "Warning: " << reader.sm << " region " << region << " is empty." << std::endl;
-        }
-        allele_mv.push_back(reader.allele_m);
-        names += reader.sm + '\t';
-        if (!reader.Close()) {
-            std::cerr << "Warning: could not close file " << bam << std::endl;
-        }
-        } catch (std::out_of_range e) {
+            BamProcess reader(opt::mapq);
+            if (!(++count % 100)) std::cerr << "reading number " << count << " bam -- " << fout << ".tmp.batch." << ib << std::endl;
+            if (!reader.Open(bam)) {
+                throw std::runtime_error("ERROR: can not open file " + bam);
+            }
+            if (!reader.FindSnpAtPos(rg_s, refseq, region, pv)) {
+                std::cerr << "warning: " << reader.sm << " region " << region << " is empty." << std::endl;
+            }
+            allele_mv.push_back(reader.allele_m);
+            names += reader.sm + '\t';
+            if (!reader.Close()) {
+                std::cerr << "warning: could not close " << bam << std::endl;
+            }
+        } catch (std::out_of_range e) {  // need to be fixed
             std::cout <<  bam << std::endl;
             exit(EXIT_FAILURE);
         }
@@ -510,8 +506,7 @@ void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const Strin
         fw = fmt::format("{}.tmp.thread.{}/batch.{}", fout, i, ib);
         fp = bgzf_open(fw.c_str(), "w");
         if (bgzf_write(fp, names.c_str(), names.length()) != names.length()) {
-            std::cerr << "fail to write - exit" << std::endl;
-            exit(EXIT_FAILURE);
+            throw std::runtime_error("ERROR: fail to write");
         }
         fpv.push_back(fp);
     }
@@ -532,8 +527,7 @@ void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const Strin
         out += "\n";
         if (i == (j + 1) * window) ++j;
         if (bgzf_write(fpv[j], out.c_str(), out.length()) != out.length()) {
-            std::cerr << "fail to write - exit" << std::endl;
-            exit(EXIT_FAILURE);
+            throw std::runtime_error("ERROR: fail to write");
         }
     }
 
@@ -683,16 +677,14 @@ void runPopMatrix (int argc, char **argv)
 {
     parseOptions(argc, argv, POPMATRIX_MESSAGE);
     if (opt::reference.empty() || opt::posfile.empty()) {
-        std::cerr << POPMATRIX_MESSAGE;
-        exit(EXIT_FAILURE);
+        throw std::invalid_argument(POPMATRIX_MESSAGE);
     }
     std::cerr << "popmatrix start" << std::endl;
     clock_t ctb = clock();
     std::ifstream ibam(opt::input);
     std::ifstream ipos(opt::posfile);
     if (!ibam.is_open() || !ipos.is_open()) {
-        std::cerr << "bamlist or posifle can not be opend" << std::endl;
-        exit(EXIT_FAILURE);
+        throw std::runtime_error("ERROR: bamlist or posifle fail to be opend");
     }
     StringV bams(std::istream_iterator<BaseVarC::Line>{ibam},
     	         std::istream_iterator<BaseVarC::Line>{});
@@ -705,8 +697,7 @@ void runPopMatrix (int argc, char **argv)
     String out = fmt::format("{}\t{}\n", N, M);
     BGZF* fp = bgzf_open(opt::output.c_str(), "w");
     if (bgzf_write(fp, out.c_str(), out.length()) != out.length()) {
-        std::cerr << "fail to write - exit" << std::endl;
-        exit(EXIT_FAILURE);
+        throw std::runtime_error("ERROR: fail to write");
     }
     // ready for run
     String rg = pv.front() + pv.back();
@@ -722,20 +713,18 @@ void runPopMatrix (int argc, char **argv)
         BamProcess reader(opt::mapq);
         if (!(++count % 1000)) std::cerr << "Processing the number " << count / 1000 << "k bam" << std::endl;
         if (!reader.Open(bams[i])) {
-            std::cerr << "ERROR: could not open file " << bams[i] << std::endl;
-            exit(EXIT_FAILURE);
+            throw std::runtime_error("ERROR: cannot open bam " + bams[i]);
         }
         String out = reader.FetchAlleleType(rg_s, refseq, rg, pv);
         out += "\n";
         if (bgzf_write(fp, out.c_str(), out.length()) != out.length()) {
-            std::cerr << "fail to write - exit" << std::endl;
-            exit(EXIT_FAILURE);
+            throw std::runtime_error("ERROR: fail to write");
         }
         if (!reader.Close()) {
-            std::cerr << "Warning: could not close file " << bams[i] << std::endl;
+            std::cerr << "warning: fail to close file " << bams[i] << std::endl;
         }
     }
-    if (bgzf_close(fp) < 0) std::cerr << "failed to close \n";
+    if (bgzf_close(fp) < 0) std::cerr << "warning: fail to close file" << std::endl;
     clock_t cte = clock();
     double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
     std::cout << "elapsed secs : " << elapsed_secs << std::endl;
@@ -771,8 +760,7 @@ void runConcat(int argc, char **argv)
             std::istringstream ts(ss);
             while (std::getline(ts, token, '\t')) tokens.push_back(token);
             if (n > 0 && n != std::stol(tokens[0])) {
-                std::cerr << "error: the number of samples among the inputs are different!" << std::endl;
-                exit(EXIT_FAILURE);
+                throw std::runtime_error("ERROR: the number of samples among the inputs are different!");
             } else {
                 n = std::stol(tokens[0]);
                 m = std::stol(tokens[1]);
@@ -783,8 +771,7 @@ void runConcat(int argc, char **argv)
     // begin to concat and write to output
     ss = fmt::format("{}\t{}\n", n, mt);
     if (bgzf_write(fpo, ss.c_str(), ss.length()) != ss.length()) {
-        std::cerr << "fail to write - exit" << std::endl;
-        exit(EXIT_FAILURE);
+        throw std::runtime_error("ERROR: fail to write");
     }
     for (i = 0; i < n ; ++i) {
         if (i % 1000 == 0 && i != 0) std::cout << "reading the " << i << " samples" << std::endl;
@@ -794,18 +781,16 @@ void runConcat(int argc, char **argv)
             if (bgzf_getline(fpv[k], '\n', &ks) >= 0) {
                 ss += (String)ks.s;
             } else {
-                std::cerr << "error: empty line in " << i << "line of " << fm_v[k] << std::endl;
-                exit(EXIT_FAILURE);
+                throw std::runtime_error("ERROR: empty in the " + BaseVarC::tostring(i) + " line of " + fm_v[k]);
             }
         }
         ss += "\n";
         if (bgzf_write(fpo, ss.c_str(), ss.length()) != ss.length()) {
-            std::cerr << "fail to write" << std::endl;
-            exit(EXIT_FAILURE);
+            throw std::runtime_error("ERROR: fail to write");
         }
     }
 
-    if (bgzf_close(fpo) < 0) std::cerr << "warning: file cannot be closed" << std::endl;
+    if (bgzf_close(fpo) < 0) std::cerr << "warning: fail to close file" << std::endl;
     clock_t cte = clock();
     double elapsed_secs = double(cte - ctb) / CLOCKS_PER_SEC;
     std::cout << "elapsed secs : " << elapsed_secs << std::endl;

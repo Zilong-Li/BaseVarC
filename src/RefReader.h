@@ -21,8 +21,7 @@ std::string RefReader::GetTargetBase(const std::string& rg, const std::string& f
     int32_t rg_s, rg_e;
     std::tie(chr, rg_s, rg_e) = BaseVarC::splitrg(rg);
     if (!LoadIndex(f)) {
-        std::cerr << "reference must be index with samtools faidx" << std::endl;
-        exit(EXIT_FAILURE);
+        throw std::runtime_error("ERROR: reference must be index with samtools faidx");
     }
     // SeqLib will throw exception if something goes wrong.
     seq = QueryRegion(chr, rg_s - 1, rg_e - 1);    // make 0-based

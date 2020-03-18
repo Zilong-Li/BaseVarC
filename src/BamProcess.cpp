@@ -261,9 +261,7 @@ bool BamProcess::GetBRV(const std::string& rg, SeqLib::BamRecordVector& rv)
     std::string hh = Header().AsString(); //std::string(header()->text)
     bool sorted = hh.find("SO:coord") != std::string::npos;
     if (!sorted) {
-    	std::cerr << "ERROR: BAM file does not appear to be sorted (no SO:coordinate) found in header." << std::endl;
-    	std::cerr << "       Sorted BAMs are required." << std::endl;
-    	exit(EXIT_FAILURE);
+        throw std::runtime_error("ERROR: BAM file does not appear to be sorted (no SO:coordinate) found in header.\n Sorted BAMs are required.");
     }
     // find sm:samplename
     size_t p;
@@ -278,8 +276,7 @@ bool BamProcess::GetBRV(const std::string& rg, SeqLib::BamRecordVector& rv)
             }
         }
     } else {
-        std::cerr << "ERROR: No SM tag can be found. Please make sure there is SM tag in the bam header" << std::endl;
-    	exit(EXIT_FAILURE);
+        throw std::runtime_error("ERROR: No SM tag can be found. Please make sure there is SM tag in the bam header");
     }
     SeqLib::GenomicRegion gr(rg, Header());
     gr.Pad(1000);
