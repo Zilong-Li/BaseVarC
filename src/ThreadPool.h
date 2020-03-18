@@ -11,7 +11,7 @@
 #include <functional>
 #include <stdexcept>
 
-namespace BaseVar {
+namespace BaseVarC {
 
 class ThreadPool {
 public:

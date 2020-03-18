@@ -7,9 +7,11 @@
 #include <vector>
 #include <numeric>
 #include <algorithm>
+#include <cstdio>
 
-namespace BaseVar
+namespace BaseVarC
 {
+
 struct Line
 {
     std::string data;
@@ -32,6 +34,15 @@ std::vector<size_t> sortidx(const std::vector<T>& v) {
     std::iota(idx.begin(), idx.end(), 0);
     std::sort(idx.begin(), idx.end(), [&v](size_t i1, size_t i2) {return v[i1] > v[i2];});
     return idx;
+}
+
+inline bool exists (const std::string& name) {
+    if (FILE *file = fopen(name.c_str(), "r")) {
+        fclose(file);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 inline bool checkrg(const std::string& rg) {

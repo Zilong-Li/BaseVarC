@@ -16,8 +16,8 @@ struct PosInfo
         assert(this->chr == snp.chr);
         const char *colon = ":";
         const char *hyphen = "-";
-        auto rg_s = BaseVar::tostring(this->pos);
-        auto rg_e = BaseVar::tostring(snp.pos);
+        auto rg_s = BaseVarC::tostring(this->pos);
+        auto rg_e = BaseVarC::tostring(snp.pos);
         return snp.chr + colon + rg_s + hyphen + rg_e;
     }
     friend std::istream& operator>>(std::istream& is, PosInfo& info) {

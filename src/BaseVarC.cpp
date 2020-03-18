@@ -176,7 +176,7 @@ int main(int argc, char** argv)
 void runBaseType(int argc, char **argv)
 {
     parseOptions(argc, argv, BASETYPE_MESSAGE);
-    BaseVar::checkrg(opt::region);
+    BaseVarC::checkrg(opt::region);
     if (opt::reference.empty()) {
         throw std::invalid_argument("reference must be feed");
     }
@@ -184,12 +184,12 @@ void runBaseType(int argc, char **argv)
     clock_t ctb = clock();
     std::cout << "basetype start -- " << ctime(&tim);
     std::ifstream ibam(opt::input);
-    StringV bams(std::istream_iterator<BaseVar::Line>{ibam},
-    	         std::istream_iterator<BaseVar::Line>{});
+    StringV bams(std::istream_iterator<BaseVarC::Line>{ibam},
+    	         std::istream_iterator<BaseVarC::Line>{});
     const int32_t N = bams.size();
     String chr;
     int32_t rg_s, rg_e, buf = 1000;
-    std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(opt::region);
+    std::tie(chr, rg_s, rg_e) = BaseVarC::splitrg(opt::region);
     RefReader fa;
     // expand right region for scanning indels
     String rg_t = fmt::format("{}:{}-{}", chr, rg_s, rg_e + buf);
@@ -219,16 +219,18 @@ void runBaseType(int argc, char **argv)
         for (int i = 0; i < thread; ++i) {
             tmp = fmt::format("{}.tmp.thread.{}/batch.{}", opt::output, i, j);
             ftmp_vv[i].push_back(tmp);
-            if (bgzf_is_bgzf(tmp.c_str())) {
+            if (BaseVarC::exists(tmp)) {
                 BGZF* fp = bgzf_open(tmp.c_str(), "r");
-                if (bgzf_check_EOF(fp) == 1) { k +=1; ngz += 1; }
+                if (bgzf_compression(fp) == 2) {
+                    if (bgzf_check_EOF(fp) == 1) { k +=1; ngz += 1; }
+                }
             }
         }
         if (k != thread) bk = bk > j ? j : bk;
     }
     if (opt::rerun && ngz > 0) {
         if (ngz != thread * nb) {
-            BaseVar::ThreadPool pool(thread);
+            BaseVarC::ThreadPool pool(thread);
             std::vector<std::future<void>> res;
             std::cerr << "begin to read bams and save as tmp file" << std::endl;
             for (int i = bk; i < nb; ++i) {
@@ -240,7 +242,7 @@ void runBaseType(int argc, char **argv)
             res.clear();
         }
     } else {
-        BaseVar::ThreadPool pool(thread);
+        BaseVarC::ThreadPool pool(thread);
         std::vector<std::future<void>> res;
         std::cerr << "begin to read bams and save as tmp file" << std::endl;
         for (int i = 0; i < nb; ++i) {
@@ -554,7 +556,7 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
     BtRes res;
     IndelMap indel_m;
     // output cvg;
-    ref_base = BASE_INT8_TABLE[static_cast<int>(refseq[p - rg_s])];
+    ref_base = BASE_INT8_TABLE[static_cast<size_t>(refseq[p - rg_s])];
     na = 0; nc = 0; ng = 0; nt = 0;
     for (auto const& a: aiv) {
         if (a.is_indel == 0) {
@@ -583,11 +585,15 @@ BtRes bt_f(int32_t p, const GroupIdx& popg_idx, const AlleleInfoVector& aiv, con
         indels.pop_back();
     }
     IntV tmp = {na, nc, ng, nt};
-    std::vector<size_t> didx = BaseVar::sortidx(tmp);
-    if (didx[0] != ref_base) {
-        alt_base = didx[0];
-    } else{
-        alt_base = didx[1];
+    std::vector<size_t> didx = BaseVarC::sortidx(tmp);
+    if (ref_base >= 0) {
+        if (didx[0] != (unsigned)ref_base) {  // cast to unsigned type to avoid -Wsign-compare warning
+            alt_base = didx[0];
+        } else{
+            alt_base = didx[1];
+        }
+    } else {
+        std::cerr << "warning: the reference base is not one of {ACGT and will be skipped.}"<< std::endl;
     }
     ref_fwd = 0, ref_rev = 0, alt_fwd = 0, alt_rev = 0;
     for (auto const& a: aiv) {
@@ -688,8 +694,8 @@ void runPopMatrix (int argc, char **argv)
         std::cerr << "bamlist or posifle can not be opend" << std::endl;
         exit(EXIT_FAILURE);
     }
-    StringV bams(std::istream_iterator<BaseVar::Line>{ibam},
-    	         std::istream_iterator<BaseVar::Line>{});
+    StringV bams(std::istream_iterator<BaseVarC::Line>{ibam},
+    	         std::istream_iterator<BaseVarC::Line>{});
     PosInfoVector pv;
     for (PosInfo p; ipos >> p;) pv.push_back(p);
     pv.shrink_to_fit();        // request for the excess capacity to be released
@@ -706,7 +712,7 @@ void runPopMatrix (int argc, char **argv)
     String rg = pv.front() + pv.back();
     int32_t rg_s, rg_e;
     String chr;
-    std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(rg);
+    std::tie(chr, rg_s, rg_e) = BaseVarC::splitrg(rg);
     RefReader fa;
     // expand right region for scanning indels
     String rg_t = fmt::format("{}:{}-{}", chr, rg_s, rg_e + 1000);
@@ -745,8 +751,8 @@ void runConcat(int argc, char **argv)
     String fo = opt::output;
     clock_t ctb = clock();
     std::ifstream ifm(fm);
-    StringV fm_v(std::istream_iterator<BaseVar::Line>{ifm},
-	             std::istream_iterator<BaseVar::Line>{});
+    StringV fm_v(std::istream_iterator<BaseVarC::Line>{ifm},
+	             std::istream_iterator<BaseVarC::Line>{});
     int32_t i, k, m, n = 0, mt = 0;
     int32_t nm = fm_v.size();
     BGZF* fp = NULL;

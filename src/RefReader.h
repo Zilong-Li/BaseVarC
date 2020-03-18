@@ -19,7 +19,7 @@ std::string RefReader::GetTargetBase(const std::string& rg, const std::string& f
     std::string chr;
     std::string seq;
     int32_t rg_s, rg_e;
-    std::tie(chr, rg_s, rg_e) = BaseVar::splitrg(rg);
+    std::tie(chr, rg_s, rg_e) = BaseVarC::splitrg(rg);
     if (!LoadIndex(f)) {
         std::cerr << "reference must be index with samtools faidx" << std::endl;
         exit(EXIT_FAILURE);

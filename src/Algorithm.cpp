@@ -27,7 +27,7 @@ double bt_fisher_exact(int n11, int n12, int n21, int n22)
 static double rankR1(const std::vector<double>& x, size_t n1)
 {
     // merge, sort and keep track of index
-    std::vector<size_t> idx = BaseVar::sortidx(x);
+    std::vector<size_t> idx = BaseVarC::sortidx(x);
     // average method
     int32_t i, j, k = 0, n = 0, s = idx.size();
     size_t id1, id2;
