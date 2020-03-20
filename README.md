@@ -1,7 +1,6 @@
 BaseVarC - SNPs Calling From Low-Pass (<1.0x) WGS Data
 ===============================================================
 **__Current Version: 1.0.0__**
-Release date: November 11, 2019
 
 BaseVarC was implemented in C++, aiming at speeding up variants calling from large-scale population, and was used in the [CMDB](https://db.cngb.org/cmdb/) project for calling variants from one million samples
 
@@ -50,20 +49,6 @@ Options :
   --rerun,                 Read previous loaded data and rerun
   --keep_tmp,              Don't remove tmp files when basetype finished
   --verbose,    -v         Set verbose output
-```
-
-### Create Popmatrix for [EMU](https://github.com/Rosemeis/emu)
-
-```
-Commands: BaseVarC popmatrix
-Usage   : BaseVarC popmatrix [options]
-
-Options :
-  --input,      -i        BAM/CRAM files list, one file per row.
-  --output,     -o        Output file path
-  --posfile,    -p        Position file without header <CHR POS REF ALT>
-  --reference,  -r        Reference file
-  --mapq,       -q <INT>  Mapping quality >= INT [10]
 ```
 
 
