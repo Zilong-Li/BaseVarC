@@ -478,7 +478,7 @@ void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const Strin
     allele_mv.reserve(size);
     for (; itb != itb2; ++itb) {
         auto bam = *itb;
-        // try {
+        try {
             BamProcess reader(opt::mapq);
             if (!(++count % 100)) std::cerr << "reading the number " << count << " bam -- " << fout << ".tmp.batch." << ib << std::endl;
             if (!reader.Open(bam)) {
@@ -492,10 +492,11 @@ void bt_r(const StringV& bams, const IntV& pv, const String& refseq, const Strin
             if (!reader.Close()) {
                 std::cerr << "warning: could not close " << bam << std::endl;
             }
-        // } catch (std::out_of_range e) {  // need to be fixed
-        //     std::cout <<  bam << std::endl;
-        //     exit(EXIT_FAILURE);
-        // }
+        } catch (std::out_of_range e) {  // need to be fixed
+            std::cerr <<  "ERROR: something wrong when quering the reads in " << bam << std::endl;
+            std::cerr << e.what() << std::endl;
+            exit(EXIT_FAILURE);
+        }
     }
     names += "\n";    // we keep '\t' ahead of '\n' in order to connect different batches' names directly
     int32_t psize = pv.size();

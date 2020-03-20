@@ -233,7 +233,7 @@ int BamProcess::GetOffset(const SeqLib::BamRecord& r, const uint32_t pos) const
 {
     SeqLib::Cigar c = r.GetCigar();
     // offset is the 0-based
-    int offset = pos - (r.Position() + 1);
+    uint32_t offset = pos - (r.Position() + 1);
     uint32_t track = r.Position();
     for (auto const& cf: c) {
         auto t = cf.Type();
@@ -251,7 +251,13 @@ int BamProcess::GetOffset(const SeqLib::BamRecord& r, const uint32_t pos) const
             break;
         }
     }
-    return offset;
+
+    std::string seq = r.Sequence();
+    if (offset > seq.length() - 1) {
+        throw std::out_of_range("index offset " + BaseVarC::tostring(offset) + " is out of range of the sequence " + r.Sequence() + " of " + r.Qname() + " read");
+    } else {
+        return offset;
+    }
 }
 
 
@@ -261,7 +267,7 @@ bool BamProcess::GetBRV(const std::string& rg, SeqLib::BamRecordVector& rv)
     std::string hh = Header().AsString(); //std::string(header()->text)
     bool sorted = hh.find("SO:coord") != std::string::npos;
     if (!sorted) {
-        throw std::runtime_error("ERROR: BAM file does not appear to be sorted (no SO:coordinate) found in header.\n Sorted BAMs are required.");
+        throw std::runtime_error("ERROR: BAM file does not appear to be sorted (no SO:coordinate) found in header.\n       Sorted BAMs are required.");
     }
     // find sm:samplename
     size_t p;
@@ -284,13 +290,14 @@ bool BamProcess::GetBRV(const std::string& rg, SeqLib::BamRecordVector& rv)
         // SetRegion always be true, which is weird
     	std::cerr << sm << ": region " << rg << " is empty." << std::endl;
         return false;
-    }
-    SeqLib::BamRecord r;
-    // filter reads here
-    while (GetNextRecord(r)) {
-        if (r.MapQuality() < mapq) continue;
-        rv.push_back(r);
-    }
+    } else {
+        SeqLib::BamRecord r;
+        // filter reads here
+        while (GetNextRecord(r)) {
+            if (r.MapQuality() < mapq) continue;
+            rv.push_back(r);
+        }
 
-    return true;
+        return true;
+    }
 }
