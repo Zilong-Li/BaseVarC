@@ -36,7 +36,7 @@ bool BamProcess::FindSnpAtPos(int32_t rg_s, const std::string& refseq, const std
                 for (k = 0, sx = r.Position(), sy = 0; k < nc; ++k) {
                     char op = c[k].Type();
                     int l = c[k].Length();
-                    if (op -= 'M' || op == 'I' || op == 'S' || op == 'X') sy += l;
+                    if (op == 'M' || op == 'I' || op == 'S' || op == 'X') sy += l;
                     if (op == 'H' || op == 'I') continue;
                     else sx += l;
                     if (pos <= sx) break;
@@ -135,7 +135,7 @@ std::string BamProcess::FetchAlleleType(int32_t rg_s, const std::string& refseq,
                     for (k = 0, sx = r.Position(), sy = 0; k < nc; ++k) {
                         char op = c[k].Type();
                         int l = c[k].Length();
-                        if (op -= 'M' || op == 'I' || op == 'S' || op == 'X') sy += l;
+                        if (op == 'M' || op == 'I' || op == 'S' || op == 'X') sy += l;
                         if (op == 'H' || op == 'I') continue;
                         else sx += l;
                         if (pos <= sx) break;
@@ -294,6 +294,7 @@ bool BamProcess::GetBRV(const std::string& rg, SeqLib::BamRecordVector& rv)
         SeqLib::BamRecord r;
         // filter reads here
         while (GetNextRecord(r)) {
+            if (r.DuplicateFlag()) continue;
             if (r.MapQuality() < mapq) continue;
             rv.push_back(r);
         }
